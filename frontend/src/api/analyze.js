@@ -1,9 +1,13 @@
-const API_URL = 'http://localhost:5000';
+
+const API_URL = '';
 
 export async function analyzeCVApi(file, jobDescription = '') {
   const formData = new FormData();
   formData.append('file', file);
-  if (jobDescription) formData.append('job_description', jobDescription);
+
+  if (jobDescription) {
+    formData.append('job_description', jobDescription);
+  }
 
   const res = await fetch(`${API_URL}/api/analyze`, {
     method: 'POST',
@@ -11,9 +15,17 @@ export async function analyzeCVApi(file, jobDescription = '') {
   });
 
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Analysis failed');
+    let errorMessage = 'Analysis failed';
+
+    try {
+      const err = await res.json();
+      errorMessage = err.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText;
+    }
+
+    throw new Error(errorMessage);
   }
 
-  return res.json();
+  return await res.json();
 }
