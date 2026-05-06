@@ -1889,7 +1889,7 @@
     async function analyzeFile(file) {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('https://cv-analyzer-zuyf.onrender.com', { method: 'POST', body: fd });
+      const res = await fetch('https://cv-analyzer-zuyf.onrender.com/api/analyze', { method: 'POST', body: fd });
       if (!res.ok) throw new Error('Server error');
       return res.json();
     }
@@ -1930,7 +1930,7 @@
       const jd = document.getElementById('jobDescription').value.trim();
       if (jd) fd.append('job_description', jd);
       try {
-        const res = await fetch('https://cv-analyzer-zuyf.onrender.com', { method: 'POST', body: fd });
+        const res = await fetch('https://cv-analyzer-zuyf.onrender.com/api/analyze', { method: 'POST', body: fd });
         if (!res.ok) throw new Error((await res.json().catch(() => ({ error: 'Server error' }))).error || `HTTP ${res.status}`);
         const data = await res.json();
         hideLoading();

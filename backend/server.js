@@ -10,12 +10,15 @@ const { analyzeCV }   = require('./utils/ai_analyzer');
 const app    = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
 
+
 app.use(cors({
   origin: [
+    'https://cv-analyzer-nu-lemon.vercel.app',
     'https://cv-analyzer-lovat.vercel.app',
     'http://localhost:3000'
   ]
 }));
+
 app.use(express.json());
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
