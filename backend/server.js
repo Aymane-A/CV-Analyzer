@@ -1,17 +1,26 @@
 require('express-async-errors');
-const express  = require('express');
-const multer   = require('multer');
-const cors     = require('cors');
-const mongoose = require('mongoose');
+const express   = require('express');
+const multer    = require('multer');
+const cors      = require('cors');
+const mongoose  = require('mongoose');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config({ override: true });
 
 const { extractText } = require('./utils/pdf_reader');
 const { analyzeCV }   = require('./utils/ai_analyzer');
+const { refineResult, compareCandidates } = require('./utils/scoring');
 const { optionalAuth } = require('./middleware/auth');
 const Analysis = require('./models/Analysis');
 
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+  console.error('❌ JWT_SECRET is missing or too short (min 16 chars) in .env');
+  process.exit(1);
+}
+
 const app    = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
+
+app.set('trust proxy', 1); // Render / Vercel sit behind a proxy
 
 app.use(cors({
   origin: [
@@ -22,25 +31,43 @@ app.use(cors({
   ]
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+/* ── Rate limiting (protects your Groq key and the login routes) ── */
+const limiter = (max, message) => rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: message }
+});
+const authLimiter    = limiter(30, 'Too many attempts, try again in 15 minutes');
+const analyzeLimiter = limiter(30, 'Too many analyses, try again in 15 minutes');
+const compareLimiter = limiter(10, 'Too many rankings, try again in 15 minutes');
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
-app.use('/api/auth',    require('./routes/auth'));
+app.use('/api/auth',    authLimiter, require('./routes/auth'));
 app.use('/api/history', require('./routes/history'));
 
 const ALLOWED_EXT = ['pdf', 'docx'];
 const extOf = (name) => name.split('.').pop().toLowerCase();
 
-app.post('/api/analyze', upload.single('file'), optionalAuth, async (req, res) => {
+async function readCV(file) {
+  if (!ALLOWED_EXT.includes(extOf(file.originalname)))
+    throw Object.assign(new Error('Invalid file type (PDF or DOCX only)'), { status: 400 });
+  const text = await extractText(file.buffer, file.originalname);
+  if (!text || text.trim().length < 50)
+    throw Object.assign(new Error('Could not read text from this file (scanned PDF or image?)'), { status: 422 });
+  return text;
+}
+
+app.post('/api/analyze', analyzeLimiter, upload.single('file'), optionalAuth, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
-    if (!ALLOWED_EXT.includes(extOf(req.file.originalname)))
-      return res.status(400).json({ error: 'Invalid file type (PDF or DOCX only)' });
-
-    const jobDescription = req.body.job_description || '';
-    const cvText = await extractText(req.file.buffer, req.file.originalname);
-    const result = await analyzeCV(cvText, jobDescription);
+    const jobDescription = (req.body.job_description || '').trim();
+    const cvText = await readCV(req.file);
+    const result = refineResult(await analyzeCV(cvText, jobDescription), !!jobDescription);
 
     if (req.userId) {
       await Analysis.create({
@@ -54,7 +81,7 @@ app.post('/api/analyze', upload.single('file'), optionalAuth, async (req, res) =
     res.json(result);
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.status && err.status < 500 ? err.status : 500).json({ error: err.message });
   }
 });
 
@@ -63,6 +90,7 @@ const uploadMany = upload.array('files', 5);
 
 app.post(
   '/api/compare',
+  compareLimiter,
   (req, res, next) => uploadMany(req, res, (err) => {
     if (!err) return next();
     const msg = err.code === 'LIMIT_UNEXPECTED_FILE' ? 'Maximum 5 CVs at a time' : err.message;
@@ -83,14 +111,8 @@ app.post(
       // Sequential on purpose: avoids Groq rate limits (429)
       for (const file of files) {
         try {
-          if (!ALLOWED_EXT.includes(extOf(file.originalname)))
-            throw new Error('Invalid file type (PDF or DOCX only)');
-
-          const text = await extractText(file.buffer, file.originalname);
-          if (!text || text.trim().length < 50)
-            throw new Error('Could not read text from this file (scanned PDF?)');
-
-          const result = await analyzeCV(text, jobDescription);
+          const text = await readCV(file);
+          const result = refineResult(await analyzeCV(text, jobDescription), true);
           ok.push({ fileName: file.originalname, ...result });
         } catch (err) {
           console.error(file.originalname, '-', err.message);
@@ -98,12 +120,11 @@ app.post(
         }
       }
 
-      const score = (x) => (typeof x.match_score === 'number' ? x.match_score : -1);
-      ok.sort((a, b) => score(b) - score(a) || (b.ats_score || 0) - (a.ats_score || 0));
+      ok.sort(compareCandidates);
       const ranking = ok.map((c, i) => ({ rank: i + 1, ...c }));
 
       if (req.userId && ok.length) {
-        await Analysis.insertMany(ok.map(({ fileName, ...result }) => ({
+        await Analysis.insertMany(ok.map(({ fileName, rank, ...result }) => ({
           user: req.userId, fileName, hasJobDescription: true, result
         })));
       }
@@ -116,6 +137,7 @@ app.post(
   }
 );
 
+// Any error that escapes a route: answer instead of crashing the process
 app.use((err, req, res, next) => {
   console.error('Route error:', err.message);
   res.status(503).json({ error: 'Service temporarily unavailable' });

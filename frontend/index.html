@@ -2020,7 +2020,7 @@
             <div class="rank-match"><span class="rank-match-num">${m === null ? '—' : m}</span><small>match</small></div>
           </div>
           <div class="rank-bar"><div class="rank-bar-fill" style="width:${m ?? 0}%"></div></div>
-          <div class="rank-ats">ATS score: ${esc(c.ats_score)}/100</div>
+          <div class="rank-ats">ATS score: ${esc(c.ats_score)}/100${c.skill_coverage != null ? ' · Skills coverage: ' + esc(c.skill_coverage) + '%' : ''}</div>
           ${(c.matched_skills || []).length ? `<div class="rank-chips">${chips(c.matched_skills, 'ok')}</div>` : ''}
           ${(c.missing_skills || []).length ? `<div class="rank-chips">${chips(c.missing_skills, 'miss')}</div>` : ''}
           ${(c.strengths || [])[0] ? `<p class="rank-note"><b>Strength:</b> ${esc(c.strengths[0])}</p>` : ''}
@@ -2074,6 +2074,7 @@
     }
     function hideLoading() {
       clearInterval(stepTimer);
+      analyzeBtn.disabled = !selectedFile; // re-enable after an error
       document.getElementById('loadingOverlay').classList.add('hidden');
       document.body.style.overflow = '';
     }
@@ -2081,6 +2082,28 @@
     /* ══════════════════════════════════════
        RENDER RESULTS
     ══════════════════════════════════════ */
+    /* Score breakdown: real values from the AI, with a fallback for old saved analyses */
+    function computeBreakdown(data) {
+      const b = data.breakdown;
+      if (b && ['format', 'keywords', 'experience', 'education', 'skills'].every(k => Number.isFinite(+b[k]))) {
+        return [
+          { label: 'Format', value: Math.round(b.format) },
+          { label: 'Keywords', value: Math.round(b.keywords) },
+          { label: 'Experience', value: Math.round(b.experience) },
+          { label: 'Education', value: Math.round(b.education) },
+          { label: 'Skills', value: Math.round(b.skills) },
+        ];
+      }
+      const ats = Number(data.ats_score) || 0;
+      return [
+        { label: 'Format', value: Math.min(100, Math.round(ats * 1.1)) },
+        { label: 'Keywords', value: Math.round(ats * 0.9) },
+        { label: 'Experience', value: Math.min(100, data.experience_years ? data.experience_years * 10 : 60) },
+        { label: 'Education', value: data.education && data.education !== '—' ? 85 : 50 },
+        { label: 'Skills', value: Math.min(100, (data.skills || []).length * 7) },
+      ];
+    }
+
     function renderResults(data, hasJD) {
       window._lastResult = data;
       document.getElementById('uploadSection').classList.add('hidden');
@@ -2110,13 +2133,7 @@
       }, 100);
 
       /* Detailed Score Breakdown */
-      const breakdown = [
-        { label: 'Format', value: Math.min(100, Math.round(data.ats_score * 1.1)) },
-        { label: 'Keywords', value: Math.round(data.ats_score * 0.9) },
-        { label: 'Experience', value: Math.min(100, data.experience_years ? data.experience_years * 10 : 60) },
-        { label: 'Education', value: data.education && data.education !== '—' ? 85 : 50 },
-        { label: 'Skills', value: Math.min(100, (data.skills || []).length * 7) },
-      ];
+      const breakdown = computeBreakdown(data);
       const ds = document.getElementById('detailedScores');
       ds.innerHTML = '';
       breakdown.forEach((b, i) => {
@@ -2149,7 +2166,7 @@
       items.forEach((text, i) => {
         const li = document.createElement('li');
         li.className = 'insight-item'; li.style.animationDelay = i * 80 + 'ms';
-        li.innerHTML = `<span class="insight-bullet ${cls}"><i class="fa-solid ${icon}"></i></span><span>${text}</span>`;
+        li.innerHTML = `<span class="insight-bullet ${cls}"><i class="fa-solid ${icon}"></i></span><span>${esc(text)}</span>`;
         ul.appendChild(li);
       });
     }
@@ -2160,8 +2177,7 @@
     document.getElementById('exportBtn').addEventListener('click', () => {
       const data = window._lastResult;
       if (!data) return;
-      const printWin = window.open('', '_blank');
-      printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+      const reportHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
   <title>CVision Report</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
@@ -2194,37 +2210,57 @@
     .green{color:#16a34a;}.amber{color:#ea580c;}.gold{color:#a07830;}
   </style></head><body>
   <div class="header">
-    <div class="avatar">${(data.candidate_name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
-    <div><div class="name">${data.candidate_name || '—'}</div>
-    <div class="meta"><span class="badge">${data.experience_level || '—'}</span> &nbsp;${data.education || ''}</div></div>
+    <div class="avatar">${esc((data.candidate_name || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase())}</div>
+    <div><div class="name">${esc(data.candidate_name || '—')}</div>
+    <div class="meta"><span class="badge">${esc(data.experience_level || '—')}</span> &nbsp;${esc(data.education || '')}</div></div>
   </div>
   <div class="scores">
     <div class="score-box"><div class="score-num">${data.ats_score}</div><div class="score-lbl">ATS Score</div></div>
     ${data.match_score != null ? `<div class="score-box"><div class="score-num" style="color:#60a5fa">${data.match_score}</div><div class="score-lbl">Job Match</div></div>` : ''}
-    <div class="score-box"><div class="score-num">${data.experience_years || '—'}</div><div class="score-lbl">Years Exp.</div></div>
+    <div class="score-box"><div class="score-num">${data.experience_years ?? '—'}</div><div class="score-lbl">Years Exp.</div></div>
   </div>
   <div class="sec"><div class="sec-title">Score Breakdown</div>
     <div class="breakdown">
-      <div class="bd"><div class="bd-val">${Math.min(100, Math.round(data.ats_score * 1.1))}</div><div class="bd-lbl">Format</div></div>
-      <div class="bd"><div class="bd-val">${Math.round(data.ats_score * 0.9)}</div><div class="bd-lbl">Keywords</div></div>
-      <div class="bd"><div class="bd-val">${Math.min(100, (data.experience_years || 0) * 10 || 60)}</div><div class="bd-lbl">Experience</div></div>
-      <div class="bd"><div class="bd-val">${data.education && data.education !== '—' ? 85 : 50}</div><div class="bd-lbl">Education</div></div>
-      <div class="bd"><div class="bd-val">${Math.min(100, (data.skills || []).length * 7)}</div><div class="bd-lbl">Skills</div></div>
+      ${computeBreakdown(data).map(b => `<div class="bd"><div class="bd-val">${b.value}</div><div class="bd-lbl">${b.label}</div></div>`).join('')}
     </div>
   </div>
   <div class="sec"><div class="sec-title">Detected Skills</div>
-    <div class="skills">${(data.skills || []).map(s => `<span class="skill">${s}</span>`).join('')}</div>
+    <div class="skills">${(data.skills || []).map(s => `<span class="skill">${esc(s)}</span>`).join('')}</div>
   </div>
   <div class="three-col">
-    <div><div class="col-title green">✓ Strengths</div><ul class="list">${(data.strengths || []).map(s => `<li class="li-s"><span class="dot dot-g"></span>${s}</li>`).join('')}</ul></div>
-    <div><div class="col-title amber">⚠ Areas</div><ul class="list">${(data.weaknesses || []).map(s => `<li class="li-w"><span class="dot dot-a"></span>${s}</li>`).join('')}</ul></div>
-    <div><div class="col-title gold">💡 Suggestions</div><ul class="list">${(data.suggestions || []).map(s => `<li class="li-g"><span class="dot dot-y"></span>${s}</li>`).join('')}</ul></div>
+    <div><div class="col-title green">✓ Strengths</div><ul class="list">${(data.strengths || []).map(s => `<li class="li-s"><span class="dot dot-g"></span>${esc(s)}</li>`).join('')}</ul></div>
+    <div><div class="col-title amber">⚠ Areas</div><ul class="list">${(data.weaknesses || []).map(s => `<li class="li-w"><span class="dot dot-a"></span>${esc(s)}</li>`).join('')}</ul></div>
+    <div><div class="col-title gold">💡 Suggestions</div><ul class="list">${(data.suggestions || []).map(s => `<li class="li-g"><span class="dot dot-y"></span>${esc(s)}</li>`).join('')}</ul></div>
   </div>
   <div class="footer">CVision — AI-Powered CV Analyzer · ${new Date().toLocaleDateString()}</div>
-  </body></html>`);
-      printWin.document.close();
-      setTimeout(() => { printWin.print(); printWin.close(); }, 500);
+  </body></html>`;
+      printReport(reportHTML);
     });
+
+    /* Print through a hidden iframe (no popup, so it is not blocked); download as a fallback */
+    function printReport(html) {
+      const f = document.createElement('iframe');
+      f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+      f.srcdoc = html;
+      f.onload = () => {
+        try {
+          f.contentWindow.focus();
+          f.contentWindow.print();
+        } catch (e) {
+          downloadReport(html);
+        }
+        setTimeout(() => f.remove(), 60000);
+      };
+      document.body.appendChild(f);
+    }
+    function downloadReport(html) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      a.download = 'cvision-report.html';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast('Print is not available here, report downloaded instead');
+    }
 
     /* ══════════════════════════════════════
        HISTORY
@@ -2266,8 +2302,8 @@
         el.innerHTML = `
       <div class="h-name">${esc(item.name)}</div>
       <div class="h-meta">
-        <span class="h-score">${item.score}/100</span>
-        <span class="h-level">${item.level}</span>
+        <span class="h-score">${esc(item.score)}/100</span>
+        <span class="h-level">${esc(item.level)}</span>
         <span class="h-date">${item.date}</span>
       </div>
     `;

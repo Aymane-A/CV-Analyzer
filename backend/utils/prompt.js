@@ -11,6 +11,13 @@ Analyze the CV below and return ONLY this JSON structure:
   "experience_years": number,
   "education": "string",
   "ats_score": number (0-100),
+  "breakdown": {
+    "format": number (0-100, structure and readability for ATS parsers),
+    "keywords": number (0-100, industry keywords present),
+    "experience": number (0-100, depth and relevance of work experience),
+    "education": number (0-100),
+    "skills": number (0-100, breadth and depth of skills)
+  },
   "match_score": number or null,
   "matched_skills": ["skill1"] (empty array if no job description),
   "missing_skills": ["skill1"] (empty array if no job description),
