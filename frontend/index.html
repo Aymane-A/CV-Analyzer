@@ -11,10 +11,10 @@
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png">
-  <link rel="manifest" href="public/site.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
 
   <style>
     /* ═══════════════════════════════════════════ TOKENS ═══ */
@@ -1519,6 +1519,27 @@
         grid-template-columns: 1fr;
       }
     }
+  
+    /* ── AUTH (login / register) ── */
+    .auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .auth-overlay.hidden { display: none; }
+    .auth-modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 380px; box-shadow: var(--shadow-card); position: relative; }
+    .auth-modal h3 { font-size: 1.25rem; margin-bottom: 4px; color: var(--text-primary); }
+    .auth-modal .auth-sub { color: var(--text-secondary); font-size: .85rem; margin-bottom: 18px; }
+    .auth-close { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--text-secondary); font-size: 1.1rem; cursor: pointer; }
+    .auth-field { width: 100%; padding: 11px 14px; margin-bottom: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: .92rem; font-family: inherit; outline: none; }
+    .auth-field:focus { border-color: var(--border-hover); }
+    .auth-submit { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--gold); color: #1a1712; font-weight: 600; font-size: .95rem; cursor: pointer; font-family: inherit; }
+    .auth-submit:disabled { opacity: .6; cursor: wait; }
+    .auth-error { color: var(--red); font-size: .82rem; min-height: 18px; margin-bottom: 8px; }
+    .auth-switch { text-align: center; margin-top: 14px; font-size: .85rem; color: var(--text-secondary); }
+    .auth-switch button { background: none; border: none; color: var(--gold); cursor: pointer; font-family: inherit; font-size: inherit; }
+    .user-chip { display: inline-flex; align-items: center; gap: 8px; }
+    .user-chip.hidden, .nav-history-btn.hidden { display: none; }
+    .user-chip .user-name { font-size: .85rem; color: var(--text-secondary); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .h-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: auto; padding: 4px 6px; }
+    .h-delete:hover { color: var(--red); }
+    .history-item .h-top { display: flex; align-items: center; gap: 8px; }
   </style>
 
   <!-- Vercel Analytics -->
@@ -1540,6 +1561,15 @@
       <button class="nav-history-btn" id="historyBtn">
         <i class="fa-solid fa-clock-rotate-left"></i> History
       </button>
+      <button class="nav-history-btn" id="authBtn">
+        <i class="fa-solid fa-user"></i> Login
+      </button>
+      <div class="user-chip hidden" id="userChip">
+        <span class="user-name" id="userName"></span>
+        <button class="nav-history-btn" id="logoutBtn" title="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
       <button class="theme-toggle" id="themeToggle">
         <i class="fa-solid fa-moon" id="themeIcon"></i>
       </button>
@@ -1774,6 +1804,21 @@
 
   </main>
 
+  <!-- AUTH MODAL -->
+  <div class="auth-overlay hidden" id="authOverlay">
+    <div class="auth-modal">
+      <button class="auth-close" id="authClose"><i class="fa-solid fa-xmark"></i></button>
+      <h3 id="authTitle">Login</h3>
+      <p class="auth-sub">Save your analyses and access them from any device.</p>
+      <input class="auth-field hidden" id="authName" type="text" placeholder="Full name" autocomplete="name" />
+      <input class="auth-field" id="authEmail" type="email" placeholder="Email" autocomplete="email" />
+      <input class="auth-field" id="authPassword" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password" />
+      <div class="auth-error" id="authError"></div>
+      <button class="auth-submit" id="authSubmit">Login</button>
+      <div class="auth-switch"><span id="authSwitchText">No account?</span> <button id="authSwitchBtn">Register</button></div>
+    </div>
+  </div>
+
   <!-- HISTORY DRAWER -->
   <div class="history-overlay hidden" id="historyOverlay">
     <div class="history-drawer">
@@ -1895,7 +1940,7 @@
     async function analyzeFile(file) {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('https://cv-analyzer-zuyf.onrender.com/api/analyze', { method: 'POST', body: fd });
+      const res = await fetch(API + '/api/analyze', { method: 'POST', body: fd });
       if (!res.ok) throw new Error('Server error');
       return res.json();
     }
@@ -1936,7 +1981,7 @@
       const jd = document.getElementById('jobDescription').value.trim();
       if (jd) fd.append('job_description', jd);
       try {
-        const res = await fetch('https://cv-analyzer-zuyf.onrender.com/api/analyze', { method: 'POST', body: fd });
+        const res = await fetch(API + '/api/analyze', { method: 'POST', body: fd, headers: authHeaders() });
         if (!res.ok) throw new Error((await res.json().catch(() => ({ error: 'Server error' }))).error || `HTTP ${res.status}`);
         const data = await res.json();
         hideLoading();
@@ -2123,6 +2168,7 @@
        HISTORY
     ══════════════════════════════════════ */
     function saveToHistory(data) {
+      if (authToken) return; // logged in: the backend saves it in the database
       const history = JSON.parse(localStorage.getItem('cvision-history') || '[]');
       history.unshift({
         name: data.candidate_name || 'Unknown',
@@ -2142,7 +2188,7 @@
       if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
     });
 
-    function openHistory() {
+    function openLocalHistory() {
       const overlay = document.getElementById('historyOverlay');
       overlay.classList.remove('hidden');
       const list = document.getElementById('historyList');
@@ -2156,7 +2202,7 @@
         const el = document.createElement('div');
         el.className = 'history-item';
         el.innerHTML = `
-      <div class="h-name">${item.name}</div>
+      <div class="h-name">${esc(item.name)}</div>
       <div class="h-meta">
         <span class="h-score">${item.score}/100</span>
         <span class="h-level">${item.level}</span>
@@ -2215,6 +2261,152 @@
       requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
       setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(8px)'; setTimeout(() => t.remove(), 300); }, 3500);
     }
+
+    /* ══════════════════════════════════════
+       AUTH + SERVER HISTORY
+    ══════════════════════════════════════ */
+    const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://localhost:5000'
+      : 'https://cv-analyzer-zuyf.onrender.com';
+
+    let authToken = null;
+    try { authToken = localStorage.getItem('cvision-token'); } catch (e) { }
+    let authMode = 'login';
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function authHeaders() { return authToken ? { Authorization: 'Bearer ' + authToken } : {}; }
+
+    function setUser(user) {
+      document.getElementById('authBtn').classList.toggle('hidden', !!user);
+      document.getElementById('userChip').classList.toggle('hidden', !user);
+      document.getElementById('userName').textContent = user ? user.name : '';
+    }
+    function logout(silent) {
+      authToken = null;
+      try { localStorage.removeItem('cvision-token'); } catch (e) { }
+      setUser(null);
+      if (!silent) toast('Logged out');
+    }
+    async function loadMe() {
+      if (!authToken) return setUser(null);
+      try {
+        const res = await fetch(API + '/api/auth/me', { headers: authHeaders() });
+        if (!res.ok) throw new Error('bad token');
+        setUser((await res.json()).user);
+      } catch (e) { logout(true); }
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      const reg = mode === 'register';
+      document.getElementById('authTitle').textContent = reg ? 'Create account' : 'Login';
+      document.getElementById('authSubmit').textContent = reg ? 'Register' : 'Login';
+      document.getElementById('authName').classList.toggle('hidden', !reg);
+      document.getElementById('authSwitchText').textContent = reg ? 'Already have an account?' : 'No account?';
+      document.getElementById('authSwitchBtn').textContent = reg ? 'Login' : 'Register';
+      document.getElementById('authPassword').autocomplete = reg ? 'new-password' : 'current-password';
+      document.getElementById('authError').textContent = '';
+    }
+    function openAuth() { setAuthMode('login'); document.getElementById('authOverlay').classList.remove('hidden'); }
+    function closeAuth() { document.getElementById('authOverlay').classList.add('hidden'); }
+
+    document.getElementById('authBtn').addEventListener('click', openAuth);
+    document.getElementById('authClose').addEventListener('click', closeAuth);
+    document.getElementById('authOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuth(); });
+    document.getElementById('authSwitchBtn').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
+    document.getElementById('logoutBtn').addEventListener('click', () => logout(false));
+    ['authName', 'authEmail', 'authPassword'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') submitAuth(); }));
+    document.getElementById('authSubmit').addEventListener('click', submitAuth);
+
+    async function submitAuth() {
+      const btn = document.getElementById('authSubmit');
+      const err = document.getElementById('authError');
+      const name = document.getElementById('authName').value.trim();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      err.textContent = '';
+      if (!email || !password || (authMode === 'register' && !name)) { err.textContent = 'Please fill in all fields.'; return; }
+      btn.disabled = true;
+      try {
+        const body = authMode === 'register' ? { name, email, password } : { email, password };
+        const res = await fetch(API + '/api/auth/' + authMode, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        authToken = data.token;
+        try { localStorage.setItem('cvision-token', authToken); } catch (e) { }
+        setUser(data.user);
+        closeAuth();
+        ['authName', 'authEmail', 'authPassword'].forEach(id => document.getElementById(id).value = '');
+        toast('Welcome ' + data.user.name + ' 👋');
+      } catch (e) {
+        err.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function openHistory() {
+      if (!authToken) return openLocalHistory();
+      const overlay = document.getElementById('historyOverlay');
+      const list = document.getElementById('historyList');
+      overlay.classList.remove('hidden');
+      list.innerHTML = '<div class="history-empty">Loading…</div>';
+      try {
+        const res = await fetch(API + '/api/history', { headers: authHeaders() });
+        if (res.status === 401) { logout(true); toast('Session expired, please login again', 'error'); overlay.classList.add('hidden'); return; }
+        if (!res.ok) throw new Error('Server error');
+        const items = await res.json();
+        if (!items.length) {
+          list.innerHTML = '<div class="history-empty"><i class="fa-solid fa-clock-rotate-left" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>No analyses yet</div>';
+          return;
+        }
+        list.innerHTML = '';
+        items.forEach(item => {
+          const r = item.result || {};
+          const el = document.createElement('div');
+          el.className = 'history-item';
+          el.innerHTML = `
+            <div class="h-top">
+              <div class="h-name">${esc(r.candidate_name || item.fileName || 'Unknown')}</div>
+              <button class="h-delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <div class="h-meta">
+              <span class="h-score">${esc(r.ats_score)}/100</span>
+              <span class="h-level">${esc(r.experience_level || '')}</span>
+              <span class="h-date">${new Date(item.createdAt).toLocaleDateString()}</span>
+            </div>`;
+          el.addEventListener('click', async () => {
+            try {
+              const r2 = await fetch(API + '/api/history/' + item._id, { headers: authHeaders() });
+              if (!r2.ok) throw new Error('Not found');
+              const full = await r2.json();
+              overlay.classList.add('hidden');
+              renderResults(full.result, !!full.hasJobDescription);
+            } catch (e) { toast('Could not load this analysis', 'error'); }
+          });
+          el.querySelector('.h-delete').addEventListener('click', async ev => {
+            ev.stopPropagation();
+            if (!confirm('Delete this analysis?')) return;
+            try {
+              const d = await fetch(API + '/api/history/' + item._id, { method: 'DELETE', headers: authHeaders() });
+              if (!d.ok) throw new Error();
+              el.remove();
+              if (!list.children.length) openHistory();
+            } catch (e) { toast('Delete failed', 'error'); }
+          });
+          list.appendChild(el);
+        });
+      } catch (e) {
+        list.innerHTML = '<div class="history-empty">Could not load history.</div>';
+      }
+    }
+
+    loadMe();
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
