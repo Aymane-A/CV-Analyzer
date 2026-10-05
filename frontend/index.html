@@ -1540,6 +1540,41 @@
     .h-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: auto; padding: 4px 6px; }
     .h-delete:hover { color: var(--red); }
     .history-item .h-top { display: flex; align-items: center; gap: 8px; }
+  
+    /* ── RANKING ── */
+    .rank-files { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
+    .rank-file { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; color: var(--text-secondary); }
+    .rank-file i { color: var(--gold); }
+    .rank-file span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-file button { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+    .rank-file button:hover { color: var(--red); }
+    .rank-label { display: block; margin: 16px 0 6px; font-size: .88rem; color: var(--text-primary); font-weight: 500; }
+    .rank-label span { color: var(--text-muted); font-weight: 400; }
+    .rank-jd { width: 100%; padding: 12px 14px; margin-bottom: 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: .9rem; resize: vertical; outline: none; }
+    .rank-jd:focus { border-color: var(--border-hover); }
+    .rank-results { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+    .rank-results.hidden { display: none; }
+    .rank-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+    .rank-card.rank-top { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-dim); }
+    .rank-card.rank-fail { border-color: var(--red); }
+    .rank-head { display: flex; align-items: center; gap: 12px; }
+    .rank-pos { font-size: 1.5rem; min-width: 38px; text-align: center; color: var(--gold); font-weight: 700; }
+    .rank-id { flex: 1; min-width: 0; }
+    .rank-id h4 { font-size: 1rem; color: var(--text-primary); margin: 0; }
+    .rank-sub { font-size: .78rem; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-match { text-align: center; }
+    .rank-match-num { display: block; font-size: 1.6rem; font-weight: 700; color: var(--gold); line-height: 1; }
+    .rank-match small { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .rank-bar { height: 6px; background: var(--bg-input); border-radius: 99px; margin: 12px 0 8px; overflow: hidden; }
+    .rank-bar-fill { height: 100%; background: var(--gold); border-radius: 99px; transition: width .8s ease; }
+    .rank-ats { font-size: .8rem; color: var(--text-secondary); margin-bottom: 8px; }
+    .rank-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 99px; background: var(--gold-dim); color: var(--gold); font-size: .7rem; font-weight: 600; }
+    .rank-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .rank-chip { padding: 3px 9px; border-radius: 99px; font-size: .75rem; border: 1px solid; }
+    .rank-chip.ok { color: var(--green); border-color: var(--green); }
+    .rank-chip.miss { color: var(--red); border-color: var(--red); }
+    .rank-note { font-size: .8rem; color: var(--text-secondary); margin-top: 10px; line-height: 1.5; }
+    .rank-note b { color: var(--text-primary); }
   </style>
 
   <!-- Vercel Analytics -->
@@ -1597,7 +1632,7 @@
         <i class="fa-solid fa-cloud-arrow-up"></i> Analyze CV
       </button>
       <button class="tab-btn" data-tab="compare">
-        <i class="fa-solid fa-code-compare"></i> Compare CVs
+        <i class="fa-solid fa-ranking-star"></i> Rank Candidates
       </button>
     </div>
 
@@ -1609,12 +1644,12 @@
           <h2>Upload CV</h2>
         </div>
         <div class="drop-zone" id="dropZone">
-          <input type="file" id="fileInput" accept=".pdf,.doc,.docx" hidden />
+          <input type="file" id="fileInput" accept=".pdf,.docx" hidden />
           <div class="drop-zone-inner" id="dropZoneInner">
             <div class="drop-icon-wrap"><i class="fa-regular fa-file-lines drop-icon"></i></div>
             <p class="drop-primary">Drag &amp; drop your CV here</p>
             <p class="drop-secondary">or <button class="inline-btn" id="browseBtn">browse files</button></p>
-            <p class="drop-formats">PDF · DOC · DOCX &nbsp;·&nbsp; Max 16 MB</p>
+            <p class="drop-formats">PDF · DOCX &nbsp;·&nbsp; Max 16 MB</p>
           </div>
           <div class="file-selected hidden" id="fileSelected">
             <i class="fa-regular fa-circle-check file-check-icon"></i>
@@ -1650,31 +1685,22 @@
     <div class="tab-panel" id="tab-compare">
       <div class="card">
         <div class="card-header">
-          <i class="fa-solid fa-code-compare card-header-icon"></i>
-          <h2>Compare Two CVs</h2>
+          <i class="fa-solid fa-ranking-star card-header-icon"></i>
+          <h2>Rank Candidates for a Job</h2>
         </div>
-        <div class="compare-grid">
-          <div class="compare-drop" id="drop1" onclick="document.getElementById('file1').click()">
-            <input type="file" id="file1" accept=".pdf,.doc,.docx" hidden />
-            <i class="fa-regular fa-file-lines"></i>
-            <p>CV Candidate 1</p>
-            <span class="file-badge hidden" id="badge1"></span>
-          </div>
-          <div class="compare-drop" id="drop2" onclick="document.getElementById('file2').click()">
-            <input type="file" id="file2" accept=".pdf,.doc,.docx" hidden />
-            <i class="fa-regular fa-file-lines"></i>
-            <p>CV Candidate 2</p>
-            <span class="file-badge hidden" id="badge2"></span>
-          </div>
+        <div class="compare-drop" id="rankDrop">
+          <input type="file" id="rankFiles" accept=".pdf,.docx" multiple hidden />
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p>Drop 2 to 5 CVs here or click to browse</p>
         </div>
-        <button class="btn-analyze" id="compareBtn" disabled>
-          <i class="fa-solid fa-code-compare"></i> Compare CVs
+        <div class="rank-files" id="rankFileList"></div>
+        <label class="rank-label" for="rankJD">Job description <span>(required)</span></label>
+        <textarea class="rank-jd" id="rankJD" rows="6"
+          placeholder="Paste the job description here: required skills, experience, responsibilities…"></textarea>
+        <button class="btn-analyze" id="rankBtn" disabled>
+          <i class="fa-solid fa-ranking-star"></i> Rank candidates
         </button>
-        <div class="compare-result hidden" id="compareResult">
-          <div class="compare-cv" id="cv1Result"></div>
-          <div class="compare-vs">VS</div>
-          <div class="compare-cv" id="cv2Result"></div>
-        </div>
+        <div class="rank-results hidden" id="rankResults"></div>
       </div>
     </div>
 
@@ -1879,7 +1905,7 @@
 
     function handleFile(f) {
       const ext = f.name.split('.').pop().toLowerCase();
-      if (!['pdf', 'doc', 'docx'].includes(ext)) { toast('Please upload PDF, DOC, or DOCX', 'error'); return; }
+      if (!['pdf', 'docx'].includes(ext)) { toast('Please upload a PDF or DOCX file', 'error'); return; }
       if (f.size > 16 * 1024 * 1024) { toast('File exceeds 16 MB limit', 'error'); return; }
       selectedFile = f;
       document.getElementById('fileName').textContent = f.name;
@@ -1907,66 +1933,102 @@
     /* ══════════════════════════════════════
        COMPARE CVs
     ══════════════════════════════════════ */
-    let cFile1 = null, cFile2 = null;
-    document.getElementById('file1').addEventListener('change', function () {
-      cFile1 = this.files[0];
-      const b = document.getElementById('badge1');
-      b.textContent = cFile1.name; b.classList.remove('hidden');
-      checkCompare();
+    /* ══════════════════════════════════════
+       RANK CANDIDATES (several CVs vs one job)
+    ══════════════════════════════════════ */
+    const MAX_RANK = 5;
+    let rankFiles = [];
+    const rankInput = document.getElementById('rankFiles');
+    const rankDrop = document.getElementById('rankDrop');
+    const rankBtn = document.getElementById('rankBtn');
+
+    rankDrop.addEventListener('click', () => rankInput.click());
+    rankDrop.addEventListener('dragover', e => { e.preventDefault(); rankDrop.classList.add('drag-over'); });
+    rankDrop.addEventListener('dragleave', () => rankDrop.classList.remove('drag-over'));
+    rankDrop.addEventListener('drop', e => {
+      e.preventDefault(); rankDrop.classList.remove('drag-over');
+      addRankFiles(e.dataTransfer.files);
     });
-    document.getElementById('file2').addEventListener('change', function () {
-      cFile2 = this.files[0];
-      const b = document.getElementById('badge2');
-      b.textContent = cFile2.name; b.classList.remove('hidden');
-      checkCompare();
-    });
-    function checkCompare() {
-      document.getElementById('compareBtn').disabled = !(cFile1 && cFile2);
+    rankInput.addEventListener('change', () => { addRankFiles(rankInput.files); rankInput.value = ''; });
+    document.getElementById('rankJD').addEventListener('input', checkRank);
+
+    function addRankFiles(fileList) {
+      for (const f of fileList) {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'docx'].includes(ext)) { toast(f.name + ': PDF or DOCX only', 'error'); continue; }
+        if (rankFiles.some(x => x.name === f.name && x.size === f.size)) continue;
+        if (rankFiles.length >= MAX_RANK) { toast('Maximum ' + MAX_RANK + ' CVs', 'error'); break; }
+        rankFiles.push(f);
+      }
+      renderRankFiles();
     }
-    document.getElementById('compareBtn').addEventListener('click', async () => {
+    function renderRankFiles() {
+      const box = document.getElementById('rankFileList');
+      box.innerHTML = rankFiles.map((f, i) => `
+        <div class="rank-file"><i class="fa-regular fa-file-lines"></i>
+          <span>${esc(f.name)}</span><small>${fmtBytes(f.size)}</small>
+          <button data-i="${i}" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+        </div>`).join('');
+      box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        rankFiles.splice(+b.dataset.i, 1); renderRankFiles();
+      }));
+      checkRank();
+    }
+    function checkRank() {
+      rankBtn.disabled = !(rankFiles.length >= 2 && document.getElementById('rankJD').value.trim().length >= 20);
+    }
+
+    rankBtn.addEventListener('click', async () => {
+      const fd = new FormData();
+      rankFiles.forEach(f => fd.append('files', f));
+      fd.append('job_description', document.getElementById('rankJD').value.trim());
+      const title = document.querySelector('.loading-title');
+      title.textContent = 'Ranking candidates…';
       showLoading();
       try {
-        const [r1, r2] = await Promise.all([
-          analyzeFile(cFile1),
-          analyzeFile(cFile2)
-        ]);
-        hideLoading();
-        renderCompare(r1, r2);
+        const res = await fetch(API + '/api/compare', { method: 'POST', body: fd, headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        renderRanking(data.ranking || []);
       } catch (err) {
+        toast('Ranking failed: ' + err.message, 'error');
+      } finally {
         hideLoading();
-        toast('Compare failed: ' + err.message, 'error');
+        title.textContent = 'Analyzing CV…';
+        checkRank();
       }
     });
-    async function analyzeFile(file) {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch(API + '/api/analyze', { method: 'POST', body: fd });
-      if (!res.ok) throw new Error('Server error');
-      return res.json();
-    }
-    function renderCompare(r1, r2) {
-      const result = document.getElementById('compareResult');
-      result.classList.remove('hidden');
-      const winner = r1.ats_score >= r2.ats_score ? 1 : 2;
-      document.getElementById('cv1Result').innerHTML = `
-    <h4>${r1.candidate_name || 'Candidate 1'}</h4>
-    <div class="compare-score">
-      <div class="big-score" style="color:var(--gold)">${r1.ats_score}</div>
-      <div class="score-label">ATS Score</div>
-      ${winner === 1 ? '<span class="winner-badge">✦ Winner</span>' : ''}
-    </div>
-    <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:8px;">${r1.experience_level} · ${(r1.skills || []).slice(0, 4).join(', ')}</p>
-  `;
-      document.getElementById('cv2Result').innerHTML = `
-    <h4>${r2.candidate_name || 'Candidate 2'}</h4>
-    <div class="compare-score">
-      <div class="big-score" style="color:var(--blue)">${r2.ats_score}</div>
-      <div class="score-label">ATS Score</div>
-      ${winner === 2 ? '<span class="winner-badge">✦ Winner</span>' : ''}
-    </div>
-    <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:8px;">${r2.experience_level} · ${(r2.skills || []).slice(0, 4).join(', ')}</p>
-  `;
-      result.scrollIntoView({ behavior: 'smooth' });
+
+    function renderRanking(list) {
+      const box = document.getElementById('rankResults');
+      const medals = ['🥇', '🥈', '🥉'];
+      box.innerHTML = list.map(c => {
+        if (c.error) {
+          return `<div class="rank-card rank-fail"><div class="rank-head"><div class="rank-pos">⚠️</div>
+            <div class="rank-id"><h4>${esc(c.fileName)}</h4><p class="rank-note">${esc(c.error)}</p></div></div></div>`;
+        }
+        const m = typeof c.match_score === 'number' ? Math.max(0, Math.min(100, c.match_score)) : null;
+        const chips = (arr, cls) => (arr || []).slice(0, 8).map(s => `<span class="rank-chip ${cls}">${esc(s)}</span>`).join('');
+        return `
+        <div class="rank-card ${c.rank === 1 ? 'rank-top' : ''}">
+          <div class="rank-head">
+            <div class="rank-pos">${medals[c.rank - 1] || '#' + c.rank}</div>
+            <div class="rank-id">
+              <h4>${esc(c.candidate_name || c.fileName)}${c.rank === 1 ? '<span class="rank-badge">Best fit</span>' : ''}</h4>
+              <p class="rank-sub">${esc(c.experience_level || '')} · ${esc(c.experience_years ?? '?')} yrs · ${esc(c.fileName)}</p>
+            </div>
+            <div class="rank-match"><span class="rank-match-num">${m === null ? '—' : m}</span><small>match</small></div>
+          </div>
+          <div class="rank-bar"><div class="rank-bar-fill" style="width:${m ?? 0}%"></div></div>
+          <div class="rank-ats">ATS score: ${esc(c.ats_score)}/100</div>
+          ${(c.matched_skills || []).length ? `<div class="rank-chips">${chips(c.matched_skills, 'ok')}</div>` : ''}
+          ${(c.missing_skills || []).length ? `<div class="rank-chips">${chips(c.missing_skills, 'miss')}</div>` : ''}
+          ${(c.strengths || [])[0] ? `<p class="rank-note"><b>Strength:</b> ${esc(c.strengths[0])}</p>` : ''}
+          ${(c.weaknesses || [])[0] ? `<p class="rank-note"><b>Gap:</b> ${esc(c.weaknesses[0])}</p>` : ''}
+        </div>`;
+      }).join('');
+      box.classList.remove('hidden');
+      box.scrollIntoView({ behavior: 'smooth' });
     }
 
     /* ══════════════════════════════════════
@@ -2293,7 +2355,8 @@
       if (!authToken) return setUser(null);
       try {
         const res = await fetch(API + '/api/auth/me', { headers: authHeaders() });
-        if (!res.ok) throw new Error('bad token');
+        if (res.status === 401) throw new Error('bad token');
+        if (!res.ok) return; // server down: keep the session
         setUser((await res.json()).user);
       } catch (e) { logout(true); }
     }

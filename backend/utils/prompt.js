@@ -1,6 +1,6 @@
 function buildPrompt(cvText, jobDescription = '') {
   const jdSection = jobDescription
-    ? `\n\nJOB DESCRIPTION:\n${jobDescription}\n\nAlso calculate match_score (0-100).`
+    ? `\n\nJOB DESCRIPTION:\n${jobDescription}\n\nmatch_score (0-100) must reflect how well THIS CV fits THIS job description: required skills, years of experience, seniority and domain. Be strict and consistent: 90+ only for an almost perfect fit.\nmatched_skills = skills required by the job that the CV clearly shows.\nmissing_skills = important skills required by the job that the CV lacks.`
     : '';
 
   return `You are an expert HR recruiter and ATS specialist.
@@ -12,6 +12,8 @@ Analyze the CV below and return ONLY this JSON structure:
   "education": "string",
   "ats_score": number (0-100),
   "match_score": number or null,
+  "matched_skills": ["skill1"] (empty array if no job description),
+  "missing_skills": ["skill1"] (empty array if no job description),
   "skills": ["skill1", "skill2"],
   "strengths": ["s1", "s2", "s3"],
   "weaknesses": ["w1", "w2"],
@@ -23,4 +25,4 @@ CV:
 ${cvText}`;
 }
 
-module.exports = { buildPrompt }; 
+module.exports = { buildPrompt };
