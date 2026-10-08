@@ -8,6 +8,9 @@ const analysisSchema = new mongoose.Schema({
   hasJobDescription: Boolean,
   result:            { type: mongoose.Schema.Types.Mixed, required: true },
 
+  // Hash of the CV content: the same CV under different file names is one candidate
+  cvHash:            { type: String, index: true },
+
   // Kept so "Improve my CV" works from History. Never returned unless explicitly selected.
   cvText:            { type: String, select: false },
   jobDescription:    { type: String, select: false },

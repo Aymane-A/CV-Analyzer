@@ -4808,7 +4808,7 @@
 
 
 
-    function applyAuthGate() {
+        function applyAuthGate() {
 
       if (!window._gateReady || window._authChecking) return;
 
@@ -4822,13 +4822,26 @@
 
         if (window._gateWasIn) {
 
-          // someone just logged out (or the session expired): wipe what the previous user was looking at
+          // someone just logged out (or the session expired): wipe EVERYTHING the previous user was looking at
 
           window._gateWasIn = false;
 
-          window._dash = null; window._jobs = []; window._src = null; window._lastResult = null;
+          window._dash = null; window._dashShown = null; window._jobs = []; window._src = null; window._lastResult = null;
+          window._ranking = []; window._rewritten = '';
 
-          ['rwOverlay', 'accOverlay', 'historyOverlay'].forEach(id => {
+          rankFiles = [];
+          renderRankFiles();
+          document.getElementById('rankResults').innerHTML = '';
+          document.getElementById('rankResults').classList.add('hidden');
+          document.getElementById('rankJD').value = '';
+          document.getElementById('jobDescription').value = '';
+
+          window._cmpSel.clear();
+          dashBody.innerHTML = '';
+          document.getElementById('historyList').innerHTML = '';
+          fillJobSelects();
+
+          ['rwOverlay', 'accOverlay', 'historyOverlay', 'cmpOverlay', 'lpOverlay', 'x6Overlay'].forEach(id => {
 
             const el = document.getElementById(id);
 

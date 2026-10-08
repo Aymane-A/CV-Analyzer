@@ -5,6 +5,7 @@ const cors      = require('cors');
 const helmet    = require('helmet');
 const mongoose  = require('mongoose');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 // In production the host's environment variables win; locally the .env file wins
 require('dotenv').config({ override: process.env.NODE_ENV !== 'production' });
 
@@ -80,6 +81,7 @@ const rewriteLimiter = limiter(10, 'Too many rewrites, try again in 15 minutes')
 const publicMsg = (err) => (err.status && err.status < 500 ? err.message : 'Server error');
 const statusOf  = (err) => (err.status && err.status < 500 ? err.status : 500);
 
+app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authLimiter, require('./routes/auth'));
@@ -115,6 +117,9 @@ async function readCV(file) {
 }
 
 const cleanJD = (v) => String(v || '').trim().slice(0, MAX_JD);
+const cvHashOf = (t) => crypto.createHash('sha256')
+  .update(String(t || '').slice(0, 12000).toLowerCase().replace(/\s+/g, ' ').trim())
+  .digest('hex');
 
 app.post('/api/analyze', analyzeLimiter, upload.single('file'), optionalAuth, async (req, res) => {
   try {
@@ -130,6 +135,7 @@ app.post('/api/analyze', analyzeLimiter, upload.single('file'), optionalAuth, as
         fileName: String(req.file.originalname).slice(0, 200),
         hasJobDescription: !!jobDescription,
         cvText: cvText.slice(0, 12000),
+        cvHash: cvHashOf(cvText),
         jobDescription: jobDescription.slice(0, 4000),
         result
       });
@@ -242,8 +248,13 @@ app.post(
 
       if (req.userId && ok.length) {
         await Analysis.insertMany(ok.map(({ fileName, rank, ...result }) => ({
-          user: req.userId, fileName: String(fileName).slice(0, 200), hasJobDescription: true, result,
-          cvText: cvTexts.get(fileName), jobDescription: jobDescription.slice(0, 4000)
+          user: req.userId,
+          fileName: String(fileName).slice(0, 200),
+          hasJobDescription: true,
+          result,
+          cvText: cvTexts.get(fileName),
+          cvHash: cvHashOf(cvTexts.get(fileName)),
+          jobDescription: jobDescription.slice(0, 4000)
         })));
       }
 
