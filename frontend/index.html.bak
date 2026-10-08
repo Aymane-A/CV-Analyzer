@@ -1711,32 +1711,6 @@
     .rank-hint span::before { content: '• '; }
   </style>
 
-  <style>
-    .cmp-pick { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
-    .cmp-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; background: var(--gold-dim); border: 1px solid var(--border-hover); border-radius: 12px; font-size: .85rem; color: var(--text-secondary); }
-    .cmp-wrap { overflow-x: auto; }
-    .cmp-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    .cmp-table th, .cmp-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: start; vertical-align: top; }
-    .cmp-table thead th { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--text-primary); }
-    .cmp-table tbody th { color: var(--text-muted); font-weight: 500; white-space: nowrap; }
-    .cmp-table td.cmp-best { color: var(--gold); font-weight: 700; }
-    .cmp-table .skill-tag { display: inline-block; margin: 0 4px 4px 0; padding: 3px 9px; font-size: .75rem; }
-    .cmp-best-line { margin: 0 0 12px; font-size: .9rem; color: var(--text-secondary); }
-    .cmp-best-line b { color: var(--gold); }
-    .an-chart { display: flex; align-items: flex-end; gap: 4px; height: 96px; }
-    .an-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font-size: .6rem; color: var(--text-muted); }
-    .an-bar { width: 100%; min-height: 2px; background: var(--gold); border-radius: 4px 4px 0 0; }
-    .an-offer { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .82rem; color: var(--text-secondary); }
-    .an-offer:last-child { border-bottom: none; }
-    .an-offer b { color: var(--text-primary); display: block; }
-    .lp-step { background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
-    .lp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-    .lp-weeks { color: var(--gold); font-size: .8rem; white-space: nowrap; }
-    .lp-why { margin: 6px 0 0; font-size: .85rem; color: var(--text-secondary); line-height: 1.5; }
-    .lp-total { margin: 0 0 6px; font-size: .9rem; color: var(--text-secondary); }
-    .lp-total b { color: var(--gold); }
-  </style>
-
   <!-- Vercel Analytics -->
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -1930,7 +1904,6 @@
             <i class="fa-solid fa-arrow-left"></i> Back to ranking
           </button>
           <button class="btn-reset hidden" id="backDashBtn"><i class="fa-solid fa-arrow-left"></i> Back to dashboard</button>
-          <button class="btn-export hidden" id="learnBtn"></button>
           <button class="btn-export hidden" id="rewriteBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Improve my CV</button>
           <button class="btn-export hidden" id="coverBtn"><i class="fa-solid fa-envelope-open-text"></i> Cover letter</button>
           <button class="btn-export hidden" id="interviewBtn"><i class="fa-solid fa-comments"></i> Interview prep</button>
@@ -2090,23 +2063,7 @@
 
   </div>
 
-<!-- COMPARE + LEARNING PLAN MODALS -->
-  <div class="auth-overlay hidden" id="cmpOverlay">
-    <div class="rw-modal" style="max-width:920px">
-      <button class="auth-close" id="cmpClose"><i class="fa-solid fa-xmark"></i></button>
-      <h3 id="cmpTitle"></h3>
-      <div id="cmpBody"></div>
-    </div>
-  </div>
-  <div class="auth-overlay hidden" id="lpOverlay">
-    <div class="rw-modal" style="max-width:720px">
-      <button class="auth-close" id="lpClose"><i class="fa-solid fa-xmark"></i></button>
-      <h3 id="lpTitle"></h3>
-      <div id="lpBody"></div>
-    </div>
-  </div>
-
-  <!-- AUTH MODAL -->
+<!-- AUTH MODAL -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-modal">
       <button class="auth-close" id="authClose"><i class="fa-solid fa-xmark"></i></button>
@@ -2814,7 +2771,6 @@
 
     function renderResults(data, hasJD) {
       window._lastResult = data;
-      updateLearnBtn(data);
       document.getElementById('backDashBtn').classList.add('hidden');
       document.getElementById('rewriteBtn').classList.toggle('hidden', !(((window._src && window._src.data === data && window._src.file) || data._analysisId) && !(window._user && window._user.role === 'recruiter')));
       document.getElementById('backRankBtn').classList.add('hidden');
@@ -3379,9 +3335,7 @@
           <div class="dash-box"><h4>Experience levels</h4>${barRows(Object.entries(d.levels).sort((a, b) => b[1] - a[1]))}</div>
           <div class="dash-box"><h4>Top skills</h4>${barRows(d.topSkills.map(s => [s.name, s.count])) || '<span class="dash-sub">No skills yet</span>'}</div>
         </div>
-        ${analyticsHtml(d)}
         ${pipelineHtml(d)}
-        <div class="cmp-bar hidden" id="cmpBar"></div>
         <div class="dash-filters">
           <input id="dashSearch" type="search" placeholder="Search name or file…" />
           <select id="dashLevel"><option value="">All levels</option>${levels.map(l => `<option>${esc(l)}</option>`).join('')}</select>
@@ -3418,8 +3372,7 @@
           ${pipeHtml(c)}
         </div>`).join('');
       box.querySelectorAll('.rank-view-btn').forEach(b => b.addEventListener('click', () => dashView(b.dataset.id)));
-      bindPipe(box);
-      updateCmpBar();
+      bindPipe(box);
     }
 
     async function dashView(id) {
@@ -3750,7 +3703,7 @@
     function pipeHtml(c) {
       const st = STATUS_LABELS[c.status] ? c.status : 'new';
       const opts = Object.keys(STATUS_LABELS).map(k => `<option value="${k}"${k === st ? ' selected' : ''}>${STATUS_LABELS[k]}</option>`).join('');
-      return `<label class="cmp-pick"><input type="checkbox" class="cmp-check" data-id="${esc(c.id)}"${window._cmpSel && window._cmpSel.has(String(c.id)) ? ' checked' : ''}> ${esc(t11('pick'))}</label><select class="pipe-status st-${st}" data-id="${esc(c.id)}">${opts}</select><input class="pipe-note" data-id="${esc(c.id)}" maxlength="1000" placeholder="Add a note…" value="${esc(c.note || '')}" dir="auto" /></div>`;
+      return `<div class="dash-pipe"><select class="pipe-status st-${st}" data-id="${esc(c.id)}">${opts}</select><input class="pipe-note" data-id="${esc(c.id)}" maxlength="1000" placeholder="Add a note…" value="${esc(c.note || '')}" dir="auto" /></div>`;
     }
     function pipelineInner(d) {
       const counts = {};
@@ -4098,252 +4051,6 @@
       }
       return html;
     }
-
-    // Texts for the comparison, analytics and learning plan (English / French / Arabic)
-    const T11 = {
-      en: {
-        learn: 'Learning plan', lpTitle: 'Your learning plan', lpBuilding: 'Building your plan…', lpWeeks: 'weeks', lpTotal: 'Estimated total',
-        lpDo: 'What to do', lpRes: 'Where to learn',
-        actTitle: 'Activity (last 14 days)', distTitle: 'ATS score distribution', offersTitle: 'Top job offers',
-        noOffers: 'Analyze or rank CVs with a job description to see your offers here.', cands: 'candidates', avgMatch: 'avg match', best: 'Best',
-        pick: 'Compare', cmpHint: 'Pick one more candidate to compare', cmpBtn: 'Compare selected', cmpClear: 'Clear',
-        cmpMax: 'You can compare up to 3 candidates', cmpTitle: 'Candidate comparison', cmpLoading: 'Loading the comparison…', cmpOverall: 'Highest overall',
-        rATS: 'ATS score', rMatch: 'Job match', rCoverage: 'Skills coverage', rYears: 'Years of experience', rLevel: 'Level', rEdu: 'Education',
-        rStatus: 'Status', rCommon: 'Skills in common', rUnique: 'Only this candidate', rMissing: 'Missing for the job', rStrength: 'Top strength', rGap: 'Main gap',
-        bFormat: 'Format', bKeywords: 'Keywords', bExperience: 'Experience', bEducation: 'Education', bSkills: 'Skills',
-        st_new: 'New', st_shortlisted: 'Shortlisted', st_interview: 'Interview', st_rejected: 'Rejected'
-      },
-      fr: {
-        learn: "Plan d'apprentissage", lpTitle: "Votre plan d'apprentissage", lpBuilding: 'Création du plan…', lpWeeks: 'semaines', lpTotal: 'Durée totale estimée',
-        lpDo: 'À faire', lpRes: 'Où apprendre',
-        actTitle: 'Activité (14 derniers jours)', distTitle: 'Répartition des scores ATS', offersTitle: 'Principales offres',
-        noOffers: 'Analysez ou classez des CV avec une description de poste pour voir vos offres ici.', cands: 'candidats', avgMatch: 'adéquation moy.', best: 'Meilleur',
-        pick: 'Comparer', cmpHint: 'Choisissez un autre candidat à comparer', cmpBtn: 'Comparer la sélection', cmpClear: 'Effacer',
-        cmpMax: "Vous pouvez comparer jusqu'à 3 candidats", cmpTitle: 'Comparaison des candidats', cmpLoading: 'Chargement de la comparaison…', cmpOverall: 'Meilleur au global',
-        rATS: 'Score ATS', rMatch: 'Adéquation au poste', rCoverage: 'Couverture des compétences', rYears: "Années d'expérience", rLevel: 'Niveau', rEdu: 'Formation',
-        rStatus: 'Statut', rCommon: 'Compétences en commun', rUnique: 'Uniquement ce candidat', rMissing: 'Manquantes pour le poste', rStrength: 'Principal atout', rGap: 'Principale lacune',
-        bFormat: 'Format', bKeywords: 'Mots-clés', bExperience: 'Expérience', bEducation: 'Formation', bSkills: 'Compétences',
-        st_new: 'Nouveau', st_shortlisted: 'Présélectionné', st_interview: 'Entretien', st_rejected: 'Refusé'
-      },
-      ar: {
-        learn: 'خطة التعلّم', lpTitle: 'خطتك للتعلّم', lpBuilding: 'جارٍ إنشاء الخطة…', lpWeeks: 'أسابيع', lpTotal: 'المدة الإجمالية المقدّرة',
-        lpDo: 'ما يجب فعله', lpRes: 'أين تتعلّم',
-        actTitle: 'النشاط (آخر 14 يومًا)', distTitle: 'توزيع درجات ATS', offersTitle: 'أهم عروض العمل',
-        noOffers: 'حلّل أو رتّب سيرًا ذاتية مع وصف وظيفة لتظهر عروضك هنا.', cands: 'مرشحون', avgMatch: 'متوسط الملاءمة', best: 'الأفضل',
-        pick: 'مقارنة', cmpHint: 'اختر مرشحًا آخر للمقارنة', cmpBtn: 'قارن المحدّدين', cmpClear: 'مسح',
-        cmpMax: 'يمكنك مقارنة 3 مرشحين كحد أقصى', cmpTitle: 'مقارنة المرشحين', cmpLoading: 'جارٍ تحميل المقارنة…', cmpOverall: 'الأفضل إجمالًا',
-        rATS: 'درجة ATS', rMatch: 'ملاءمة الوظيفة', rCoverage: 'تغطية المهارات', rYears: 'سنوات الخبرة', rLevel: 'المستوى', rEdu: 'التعليم',
-        rStatus: 'الحالة', rCommon: 'مهارات مشتركة', rUnique: 'خاصة بهذا المرشح فقط', rMissing: 'مهارات ناقصة للوظيفة', rStrength: 'أبرز نقاط القوة', rGap: 'أبرز نقطة ضعف',
-        bFormat: 'التنسيق', bKeywords: 'الكلمات المفتاحية', bExperience: 'الخبرة', bEducation: 'التعليم', bSkills: 'المهارات',
-        st_new: 'جديد', st_shortlisted: 'ضمن القائمة المختصرة', st_interview: 'مقابلة', st_rejected: 'مرفوض'
-      }
-    };
-    function lang11() {
-      const l = (document.documentElement.lang || '').toLowerCase();
-      if (l.startsWith('ar') || document.documentElement.dir === 'rtl') return 'ar';
-      if (l.startsWith('fr')) return 'fr';
-      return 'en';
-    }
-    function t11(k) { return (T11[lang11()] || T11.en)[k] || T11.en[k] || k; }
-
-    // Dashboard analytics: activity, score distribution, top job offers
-    function analyticsHtml(d) {
-      const act = d.activity || [];
-      const maxAct = Math.max(1, ...act.map(a => a.count));
-      const bars = act.map(a =>
-        `<div class="an-col" title="${esc(a.day)}: ${a.count}"><div class="an-bar" style="height:${Math.round(a.count / maxAct * 100)}%"></div><span>${esc(a.day.slice(8))}</span></div>`
-      ).join('');
-
-      const buckets = [['0-49', 0, 49], ['50-69', 50, 69], ['70-84', 70, 84], ['85-100', 85, 100]];
-      const dist = buckets.map(b => [b[0], d.candidates.filter(c => typeof c.ats === 'number' && c.ats >= b[1] && c.ats <= b[2]).length]);
-
-      const offers = (d.offers || []).map(o =>
-        `<div class="an-offer"><b dir="auto">${esc(o.offer || '—')}</b>${o.count} ${esc(t11('cands'))}${o.avgMatch != null ? ' · ' + o.avgMatch + ' ' + esc(t11('avgMatch')) : ''}${o.best ? ' · ' + esc(t11('best')) + ': ' + esc(o.best.name) + ' (' + o.best.match + ')' : ''}</div>`
-      ).join('') || `<span class="dash-sub">${esc(t11('noOffers'))}</span>`;
-
-      return `<div class="dash-grid">
-        <div class="dash-box"><h4>${esc(t11('actTitle'))}</h4><div class="an-chart">${bars}</div></div>
-        <div class="dash-box"><h4>${esc(t11('distTitle'))}</h4>${barRows(dist)}</div>
-      </div>
-      <div class="dash-box" style="margin-bottom:20px"><h4>${esc(t11('offersTitle'))}</h4>${offers}</div>`;
-    }
-
-    // Compare 2 to 3 candidates side by side
-    window._cmpSel = new Set();
-
-    function updateCmpBar() {
-      const bar = document.getElementById('cmpBar');
-      if (!bar) return;
-      const n = window._cmpSel.size;
-      bar.classList.toggle('hidden', n === 0);
-      if (n === 0) { bar.innerHTML = ''; return; }
-      bar.innerHTML = (n < 2
-        ? `<span>${esc(t11('cmpHint'))}</span>`
-        : `<button type="button" class="rank-view-btn" id="cmpGo" style="margin:0"><i class="fa-solid fa-code-compare"></i> ${esc(t11('cmpBtn'))} (${n})</button>`)
-        + `<button type="button" class="jobs-btn" id="cmpClear">${esc(t11('cmpClear'))}</button>`;
-    }
-
-    function buildCompareHtml(cols) {
-      const lc = s => String(s).trim().toLowerCase();
-      const dash = '—';
-      const num = v => (typeof v === 'number' && isFinite(v) ? v : null);
-      const maps = cols.map(c => new Map((c.r.skills || []).map(s => [lc(s), s])));
-      const chips = arr => arr.length ? arr.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('') : dash;
-
-      const numRow = (label, vals) => {
-        const nums = vals.map(num);
-        const present = nums.filter(v => v !== null);
-        const max = Math.max(...present);
-        const differ = new Set(present).size > 1;
-        return `<tr><th>${esc(label)}</th>${nums.map(v => `<td class="${differ && v === max ? 'cmp-best' : ''}">${v === null ? dash : esc(v)}</td>`).join('')}</tr>`;
-      };
-      const textRow = (label, vals) =>
-        `<tr><th>${esc(label)}</th>${vals.map(v => `<td dir="auto">${esc(v || dash)}</td>`).join('')}</tr>`;
-      const chipRow = (label, arrs) =>
-        `<tr><th>${esc(label)}</th>${arrs.map(a => `<td>${chips(a)}</td>`).join('')}</tr>`;
-
-      const common = [...maps[0].keys()].filter(k => maps.every(m => m.has(k))).map(k => maps[0].get(k));
-      const unique = maps.map((m, i) => [...m.entries()].filter(([k]) => !maps.some((o, j) => j !== i && o.has(k))).map(e => e[1]));
-      const score = c => (num(c.r.match_score) !== null ? c.r.match_score : (num(c.r.ats_score) !== null ? c.r.ats_score : -1));
-      const top = cols.reduce((a, b) => (score(b) > score(a) ? b : a));
-      const bd = k => cols.map(c => (c.r.breakdown || {})[k]);
-
-      const rows = [
-        numRow(t11('rATS'), cols.map(c => c.r.ats_score)),
-        numRow(t11('rMatch'), cols.map(c => c.r.match_score)),
-        numRow(t11('rCoverage'), cols.map(c => c.r.skill_coverage)),
-        numRow(t11('rYears'), cols.map(c => c.r.experience_years)),
-        textRow(t11('rLevel'), cols.map(c => c.r.experience_level)),
-        textRow(t11('rEdu'), cols.map(c => c.r.education)),
-        textRow(t11('rStatus'), cols.map(c => t11('st_' + c.status))),
-        numRow(t11('bFormat'), bd('format')),
-        numRow(t11('bKeywords'), bd('keywords')),
-        numRow(t11('bExperience'), bd('experience')),
-        numRow(t11('bEducation'), bd('education')),
-        numRow(t11('bSkills'), bd('skills')),
-        `<tr><th>${esc(t11('rCommon'))}</th><td colspan="${cols.length}">${chips(common)}</td></tr>`,
-        chipRow(t11('rUnique'), unique),
-        chipRow(t11('rMissing'), cols.map(c => c.r.missing_skills || [])),
-        textRow(t11('rStrength'), cols.map(c => (c.r.strengths || [])[0])),
-        textRow(t11('rGap'), cols.map(c => (c.r.weaknesses || [])[0]))
-      ];
-      return `<p class="cmp-best-line">${esc(t11('cmpOverall'))}: <b dir="auto">${esc(top.name)}</b></p>
-        <div class="cmp-wrap"><table class="cmp-table"><thead><tr><th></th>${cols.map(c => `<th dir="auto">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
-    }
-
-    const cmpOverlay = document.getElementById('cmpOverlay');
-    document.getElementById('cmpClose').addEventListener('click', () => cmpOverlay.classList.add('hidden'));
-    cmpOverlay.addEventListener('click', e => { if (e.target === e.currentTarget) cmpOverlay.classList.add('hidden'); });
-
-    async function openCompare() {
-      const ids = [...window._cmpSel];
-      if (ids.length < 2) return;
-      const title = document.querySelector('.loading-title');
-      const before = title.textContent;
-      title.textContent = t11('cmpLoading');
-      showLoading();
-      try {
-        const fulls = await Promise.all(ids.map(async id => {
-          const res = await fetch(API + '/api/history/' + id, { headers: authHeaders() });
-          if (res.status === 401) { logout(true); throw new Error('Session expired, please login again'); }
-          if (!res.ok) throw new Error('Could not load a candidate');
-          return res.json();
-        }));
-        const cols = fulls.map((f, i) => {
-          const c = findCand(ids[i]) || {};
-          return { r: f.result || {}, status: c.status || 'new', name: (f.result && f.result.candidate_name) || c.name || '—' };
-        });
-        document.getElementById('cmpTitle').textContent = t11('cmpTitle');
-        document.getElementById('cmpBody').innerHTML = buildCompareHtml(cols);
-        cmpOverlay.classList.remove('hidden');
-      } catch (err) {
-        toast(err.message, 'error');
-      } finally {
-        hideLoading();
-        title.textContent = before;
-      }
-    }
-
-    dashBody.addEventListener('change', e => {
-      const box = e.target.closest('.cmp-check');
-      if (!box) return;
-      if (box.checked && window._cmpSel.size >= 3) {
-        box.checked = false;
-        toast(t11('cmpMax'), 'error');
-        return;
-      }
-      if (box.checked) window._cmpSel.add(box.dataset.id); else window._cmpSel.delete(box.dataset.id);
-      updateCmpBar();
-    });
-    dashBody.addEventListener('click', e => {
-      if (e.target.closest('#cmpGo')) openCompare();
-      else if (e.target.closest('#cmpClear')) {
-        window._cmpSel.clear();
-        dashBody.querySelectorAll('.cmp-check').forEach(b => { b.checked = false; });
-        updateCmpBar();
-      }
-    });
-
-    // Learning plan from the skill gaps of the analysis on screen
-    function updateLearnBtn(data) {
-      const btn = document.getElementById('learnBtn');
-      if (!btn) return;
-      const hasGaps = ((data.missing_skills || []).length + (data.weaknesses || []).length) > 0;
-      btn.classList.toggle('hidden', !(hasGaps && !(window._user && window._user.role === 'recruiter')));
-    }
-    function refreshLabels11() {
-      const btn = document.getElementById('learnBtn');
-      if (btn) btn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> ' + esc(t11('learn'));
-      if (window._dash && document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard(window._dash);
-    }
-    refreshLabels11();
-    new MutationObserver(refreshLabels11).observe(document.documentElement, { attributes: true, attributeFilter: ['lang', 'dir'] });
-
-    const lpOverlay = document.getElementById('lpOverlay');
-    document.getElementById('lpClose').addEventListener('click', () => lpOverlay.classList.add('hidden'));
-    lpOverlay.addEventListener('click', e => { if (e.target === e.currentTarget) lpOverlay.classList.add('hidden'); });
-
-    function showPlan(p) {
-      const block = (label, arr) => arr.length
-        ? `<p class="rw-h">${esc(t11(label))}</p><ul class="rw-list">${arr.map(a => `<li dir="auto">${esc(a)}</li>`).join('')}</ul>` : '';
-      const steps = (p.steps || []).map((s, i) =>
-        `<div class="lp-step"><div class="lp-head"><b dir="auto">${i + 1}. ${esc(s.skill)}</b><span class="lp-weeks">${esc(s.weeks)} ${esc(t11('lpWeeks'))}</span></div>` +
-        `<p class="lp-why" dir="auto">${esc(s.why)}</p>${block('lpDo', s.actions || [])}${block('lpRes', s.resources || [])}</div>`
-      ).join('');
-      document.getElementById('lpTitle').textContent = t11('lpTitle');
-      document.getElementById('lpBody').innerHTML =
-        `<p class="acc-note" dir="auto">${esc(p.summary || '')}</p><p class="lp-total">${esc(t11('lpTotal'))}: <b>${esc(p.total_weeks)} ${esc(t11('lpWeeks'))}</b></p>` + steps;
-      lpOverlay.classList.remove('hidden');
-    }
-
-    document.getElementById('learnBtn').addEventListener('click', async () => {
-      const r = window._lastResult;
-      if (!r) return;
-      const title = document.querySelector('.loading-title');
-      const before = title.textContent;
-      title.textContent = t11('lpBuilding');
-      showLoading();
-      try {
-        const res = await fetch(API + '/api/learning/plan', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-          body: JSON.stringify({
-            missing_skills: r.missing_skills || [], skills: r.skills || [], weaknesses: r.weaknesses || [],
-            suggestions: r.suggestions || [], level: r.experience_level || '', years: r.experience_years,
-            has_job: typeof r.match_score === 'number', language: getLang('langSelect')
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 401) { logout(true); throw new Error('Session expired, please login again'); }
-        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
-        showPlan(data);
-      } catch (err) {
-        toast(err.message, 'error');
-      } finally {
-        hideLoading();
-        title.textContent = before;
-      }
-    });
 
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>

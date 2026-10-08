@@ -8,7 +8,43 @@ const clamp = (n, lo = 0, hi = 100) => {
 const strArr = (a, max = 20) =>
   Array.isArray(a) ? a.map((x) => String(x).trim()).filter(Boolean).slice(0, max) : [];
 
-function refineResult(raw, hasJD) {
+/* ── Verify AI skill claims against the real CV text ── */
+const ALIASES = {
+  git: ['github', 'gitlab', 'bitbucket'],
+  github: ['git'],
+  'rest apis': ['rest', 'restful', 'rest api'],
+  'rest api': ['rest', 'restful', 'rest apis'],
+  postgresql: ['postgres'],
+  mongodb: ['mongo'],
+  javascript: ['js'],
+  typescript: ['ts'],
+  'node.js': ['node', 'nodejs'],
+  nodejs: ['node', 'node.js'],
+  react: ['reactjs', 'react.js'],
+  'react.js': ['react', 'reactjs'],
+  express: ['express.js', 'expressjs'],
+  'express.js': ['express', 'expressjs'],
+  'machine learning': ['ml'],
+  'artificial intelligence': ['ai'],
+  'ci/cd': ['cicd', 'github actions', 'gitlab ci', 'jenkins'],
+};
+
+const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function skillVariants(skill) {
+  const base = skill.toLowerCase().trim();
+  const set = new Set([base, base.replace(/\s+/g, ''), base.replace(/\./g, '')]);
+  (ALIASES[base] || []).forEach((a) => set.add(a));
+  return [...set].filter(Boolean);
+}
+
+function textHasSkill(textLower, skill) {
+  return skillVariants(skill).some((v) =>
+    new RegExp('(?<![a-z0-9])' + escapeRe(v) + '(?![a-z0-9+#])').test(textLower)
+  );
+}
+
+function refineResult(raw, hasJD, cvText = '') {
   const r = { ...raw };
 
   r.candidate_name = String(r.candidate_name || '').trim() || 'Unknown';
@@ -38,9 +74,19 @@ function refineResult(raw, hasJD) {
     return r;
   }
 
-  const matched = strArr(r.matched_skills);
+  let matched = strArr(r.matched_skills);
   const matchedKeys = new Set(matched.map((x) => x.toLowerCase()));
-  const missing = strArr(r.missing_skills).filter((x) => !matchedKeys.has(x.toLowerCase()));
+  let missing = strArr(r.missing_skills).filter((x) => !matchedKeys.has(x.toLowerCase()));
+
+  // The AI sometimes lists a skill as missing although it is written in the CV: check the text
+  if (cvText) {
+    const lower = cvText.toLowerCase();
+    const found = missing.filter((sk) => textHasSkill(lower, sk));
+    if (found.length) {
+      matched = [...matched, ...found];
+      missing = missing.filter((sk) => !found.includes(sk));
+    }
+  }
   r.matched_skills = matched;
   r.missing_skills = missing;
 
@@ -70,4 +116,4 @@ function compareCandidates(a, b) {
   );
 }
 
-module.exports = { refineResult, compareCandidates };
+module.exports = { refineResult, compareCandidates, textHasSkill };

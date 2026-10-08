@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-const PIPELINE_STATUSES = ['new', 'shortlisted', 'interview', 'rejected'];
-
 const analysisSchema = new mongoose.Schema({
   user:              { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   fileName:          String,
@@ -10,11 +8,7 @@ const analysisSchema = new mongoose.Schema({
 
   // Kept so "Improve my CV" works from History. Never returned unless explicitly selected.
   cvText:            { type: String, select: false },
-  jobDescription:    { type: String, select: false },
-
-  // Recruiter pipeline
-  status:            { type: String, enum: PIPELINE_STATUSES, default: 'new' },
-  note:              { type: String, default: '', maxlength: 1000 }
+  jobDescription:    { type: String, select: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Analysis', analysisSchema);

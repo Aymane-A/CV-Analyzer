@@ -17,7 +17,9 @@ router.get('/:id', async (req, res) => {
   try {
     const item = await Analysis.findOne({ _id: req.params.id, user: req.userId });
     if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
+    const obj = item.toObject();
+    obj.result = { ...obj.result, _analysisId: String(item._id) }; // lets the page offer "Improve my CV" from History
+    res.json(obj);
   } catch {
     res.status(400).json({ error: 'Invalid id' });
   }

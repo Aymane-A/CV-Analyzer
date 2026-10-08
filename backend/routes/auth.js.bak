@@ -7,7 +7,6 @@ const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 const { sendVerificationEmail, sendResetEmail } = require('../utils/mailer');
 const Analysis = require('../models/Analysis');
-const JobOffer = require('../models/JobOffer');
 
 const router = express.Router();
 
@@ -274,8 +273,7 @@ router.delete('/account', strict(5), requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Password is incorrect' });
 
     // The saved analyses (including the stored CV text) go with the account
-    await Analysis.deleteMany({ user: user._id });
-    await JobOffer.deleteMany({ user: user._id });
+    await Analysis.deleteMany({ user: user._id });
     await User.deleteOne({ _id: user._id });
     res.json({ ok: true });
   } catch (err) {

@@ -11,11 +11,7 @@ const userSchema = new mongoose.Schema({
   verifyCodeHash: { type: String, select: false },
   verifyExpires:  Date,
   verifyAttempts: { type: Number, default: 0 },
-  verifySentAt:   Date,
-  resetCodeHash:  { type: String, select: false },
-  resetExpires:   Date,
-  resetAttempts:  { type: Number, default: 0 },
-  resetSentAt:    Date
+  verifySentAt:   Date
 }, { timestamps: true });
 
 // Accounts that never verified their email are deleted after 24 hours

@@ -23,4 +23,18 @@ function optionalAuth(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, optionalAuth };
+const User = require('../models/User');
+
+// The role is read from the database (not from the token), so it cannot be forged or go stale
+async function requireRecruiter(req, res, next) {
+  try {
+    const u = await User.findById(req.userId).select('role').lean();
+    if (!u || u.role !== 'recruiter') return res.status(403).json({ error: 'Recruiter account required' });
+    next();
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not verify account' });
+  }
+}
+
+module.exports = { requireAuth, optionalAuth, requireRecruiter };

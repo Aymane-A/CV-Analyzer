@@ -55,7 +55,6 @@ app.use('/api', require('./middleware/auth').requireAuth);
 app.use('/api/history', require('./routes/history'));
 app.use('/api/recruiter', require('./routes/recruiter'));
 app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/learning', require('./routes/learning'));
 app.use('/api/extras', require('./routes/extras')); // patch6
 
 const ALLOWED_EXT = ['pdf', 'docx'];

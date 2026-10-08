@@ -48,15 +48,9 @@ const compareLimiter = limiter(10, 'Too many rankings, try again in 15 minutes')
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 app.use('/api/auth',    authLimiter, require('./routes/auth'));
-
-// Login is mandatory: everything mounted below this line needs a valid token.
-// /api/health and /api/auth/* are mounted above it, so they stay public (login, register, verify, reset).
-app.use('/api', require('./middleware/auth').requireAuth);
 app.use('/api/history', require('./routes/history'));
 app.use('/api/recruiter', require('./routes/recruiter'));
 app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/learning', require('./routes/learning'));
-app.use('/api/extras', require('./routes/extras')); // patch6
 
 const ALLOWED_EXT = ['pdf', 'docx'];
 const extOf = (name) => name.split('.').pop().toLowerCase();
