@@ -18,7 +18,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12); // keeps login timing the same for unknown emails
 
 const str = (v) => (typeof v === 'string' ? v : '');
-const signToken = (user) => jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const cleanEmail = (v) => str(v).trim().toLowerCase();
+const validEmail = (e) => e.length <= 254 && EMAIL_RE.test(e);
+
+const signToken = (user) =>
+  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d', algorithm: 'HS256' });
 const publicUser = (u) => ({ id: u._id, name: u.name, email: u.email, role: u.role || 'candidate' });
 
 // Stricter limits on top of the global auth limiter in server.js
@@ -30,11 +34,12 @@ const strict = (max) => rateLimit({
   message: { error: 'Too many attempts, try again in 15 minutes' }
 });
 
-// Keep this list in sync with PW_RULES in index.html
+// Keep this list in sync with PW_RULES in app.html
+// (bcrypt only reads the first 72 BYTES, so the limit is counted in bytes, not characters)
 function passwordProblems(p) {
   const out = [];
   if (p.length < 8) out.push('at least 8 characters');
-  if (p.length > 72) out.push('at most 72 characters');
+  if (Buffer.byteLength(p, 'utf8') > 72) out.push('at most 72 characters');
   if (!/[A-Z]/.test(p)) out.push('an uppercase letter');
   if (!/[a-z]/.test(p)) out.push('a lowercase letter');
   if (!/\d/.test(p)) out.push('a digit');
@@ -64,16 +69,18 @@ async function issueCode(user) {
 const cooldownLeft = (user) =>
   user.verifySentAt ? Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - user.verifySentAt.getTime())) / 1000) : 0;
 
+// ---- Register / verify ----
+
 router.post('/register', strict(10), async (req, res) => {
   try {
     const name = str(req.body.name).trim();
-    const email = str(req.body.email).trim().toLowerCase();
+    const email = cleanEmail(req.body.email);
     const password = str(req.body.password);
 
     if (!name || !email || !password)
       return res.status(400).json({ error: 'name, email and password are required' });
     if (name.length > 80) return res.status(400).json({ error: 'Name is too long' });
-    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Invalid email address' });
+    if (!validEmail(email)) return res.status(400).json({ error: 'Invalid email address' });
 
     const problems = passwordProblems(password);
     if (problems.length)
@@ -111,9 +118,9 @@ router.post('/register', strict(10), async (req, res) => {
 
 router.post('/verify', strict(20), async (req, res) => {
   try {
-    const email = str(req.body.email).trim().toLowerCase();
+    const email = cleanEmail(req.body.email);
     const code = str(req.body.code).trim();
-    if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code))
+    if (!validEmail(email) || !/^\d{6}$/.test(code))
       return res.status(400).json({ error: 'Enter the 6-digit code' });
 
     // The attempt is counted BEFORE comparing, atomically, so parallel guesses cannot beat the limit
@@ -151,8 +158,8 @@ router.post('/verify', strict(20), async (req, res) => {
 
 router.post('/resend', strict(10), async (req, res) => {
   try {
-    const email = str(req.body.email).trim().toLowerCase();
-    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Invalid email address' });
+    const email = cleanEmail(req.body.email);
+    if (!validEmail(email)) return res.status(400).json({ error: 'Invalid email address' });
 
     const user = await User.findOne({ email, emailVerified: false });
     if (user) {
@@ -172,121 +179,130 @@ router.post('/resend', strict(10), async (req, res) => {
   }
 });
 
-// ---- Forgot / reset password ----
-const secondsLeft = (date) => (date ? Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - date.getTime())) / 1000) : 0);
-
-router.post('/forgot', strict(5), async (req, res) => {
-  try {
-    const email = str(req.body.email).trim().toLowerCase();
-    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Invalid email address' });
-
-    const user = await User.findOne({ email });
-    if (user && user.emailVerified !== false && secondsLeft(user.resetSentAt) <= 0) {
-      const code = String(crypto.randomInt(100000, 1000000));
-      user.resetCodeHash = hashCode(email, 'reset:' + code);
-      user.resetExpires = new Date(Date.now() + CODE_TTL_MS);
-      user.resetAttempts = 0;
-      user.resetSentAt = new Date();
-      await user.save();
-      // Not awaited, and the answer is always the same: nobody can tell whether the account exists
-      sendResetEmail(user.email, user.name, code).catch((err) => console.error('Reset email failed:', err.message));
-    }
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Could not start the password reset' });
-  }
-});
-
-router.post('/reset', strict(10), async (req, res) => {
-  try {
-    const email = str(req.body.email).trim().toLowerCase();
-    const code = str(req.body.code).trim();
-    const password = str(req.body.password);
-    if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code))
-      return res.status(400).json({ error: 'Enter the 6-digit code' });
-
-    const problems = passwordProblems(password);
-    if (problems.length)
-      return res.status(400).json({ error: 'Password needs ' + problems.join(', '), problems });
-
-    // The attempt is counted BEFORE comparing, atomically
-    const user = await User.findOneAndUpdate(
-      { email, resetAttempts: { $lt: MAX_CODE_ATTEMPTS }, resetExpires: { $gt: new Date() } },
-      { $inc: { resetAttempts: 1 } },
-      { new: true }
-    ).select('+resetCodeHash');
-
-    if (!user || !user.resetCodeHash)
-      return res.status(400).json({ error: 'Invalid or expired code. Request a new one.' });
-
-    if (!sameHash(user.resetCodeHash, hashCode(email, 'reset:' + code))) {
-      const left = MAX_CODE_ATTEMPTS - user.resetAttempts;
-      return res.status(400).json({
-        error: left > 0 ? 'Wrong code, ' + left + ' attempt' + (left === 1 ? '' : 's') + ' left' : 'Wrong code. Request a new one.'
-      });
-    }
-
-    user.password = await bcrypt.hash(password, 12);
-    user.resetCodeHash = undefined;
-    user.resetExpires = undefined;
-    user.resetSentAt = undefined;
-    user.resetAttempts = 0;
-    await user.save();
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Password reset failed' });
-  }
-});
-
-// ---- Account settings ----
-router.post('/change-password', strict(10), requireAuth, async (req, res) => {
-  try {
-    const current = str(req.body.currentPassword);
-    const next = str(req.body.newPassword);
-
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!(await bcrypt.compare(current, user.password)))
-      return res.status(400).json({ error: 'Current password is incorrect' });
-
-    const problems = passwordProblems(next);
-    if (problems.length)
-      return res.status(400).json({ error: 'Password needs ' + problems.join(', '), problems });
-    if (next === current) return res.status(400).json({ error: 'Choose a different password' });
-
-    user.password = await bcrypt.hash(next, 12);
-    await user.save();
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Could not change the password' });
-  }
-});
-
-router.delete('/account', strict(5), requireAuth, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!(await bcrypt.compare(str(req.body.password), user.password)))
-      return res.status(400).json({ error: 'Password is incorrect' });
-
-    // The saved analyses (including the stored CV text) go with the account
-    await Analysis.deleteMany({ user: user._id });
-    await JobOffer.deleteMany({ user: user._id });
-    await User.deleteOne({ _id: user._id });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Could not delete the account' });
-  }
+// ---- Forgot / reset password ----
+
+const secondsLeft = (date) => (date ? Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - date.getTime())) / 1000) : 0);
+
+router.post('/forgot', strict(5), async (req, res) => {
+  try {
+    const email = cleanEmail(req.body.email);
+    if (!validEmail(email)) return res.status(400).json({ error: 'Invalid email address' });
+
+    const user = await User.findOne({ email });
+    if (user && user.emailVerified !== false && secondsLeft(user.resetSentAt) <= 0) {
+      const code = String(crypto.randomInt(100000, 1000000));
+      user.resetCodeHash = hashCode(email, 'reset:' + code);
+      user.resetExpires = new Date(Date.now() + CODE_TTL_MS);
+      user.resetAttempts = 0;
+      user.resetSentAt = new Date();
+      await user.save();
+      // Not awaited, and the answer is always the same: nobody can tell whether the account exists
+      sendResetEmail(user.email, user.name, code).catch((err) => console.error('Reset email failed:', err.message));
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not start the password reset' });
+  }
 });
+
+router.post('/reset', strict(10), async (req, res) => {
+  try {
+    const email = cleanEmail(req.body.email);
+    const code = str(req.body.code).trim();
+    const password = str(req.body.password);
+    if (!validEmail(email) || !/^\d{6}$/.test(code))
+      return res.status(400).json({ error: 'Enter the 6-digit code' });
+
+    const problems = passwordProblems(password);
+    if (problems.length)
+      return res.status(400).json({ error: 'Password needs ' + problems.join(', '), problems });
+
+    // The attempt is counted BEFORE comparing, atomically
+    const user = await User.findOneAndUpdate(
+      { email, resetAttempts: { $lt: MAX_CODE_ATTEMPTS }, resetExpires: { $gt: new Date() } },
+      { $inc: { resetAttempts: 1 } },
+      { new: true }
+    ).select('+resetCodeHash');
+
+    if (!user || !user.resetCodeHash)
+      return res.status(400).json({ error: 'Invalid or expired code. Request a new one.' });
+
+    if (!sameHash(user.resetCodeHash, hashCode(email, 'reset:' + code))) {
+      const left = MAX_CODE_ATTEMPTS - user.resetAttempts;
+      return res.status(400).json({
+        error: left > 0 ? 'Wrong code, ' + left + ' attempt' + (left === 1 ? '' : 's') + ' left' : 'Wrong code. Request a new one.'
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.passwordChangedAt = new Date(); // every older token stops working
+    user.resetCodeHash = undefined;
+    user.resetExpires = undefined;
+    user.resetSentAt = undefined;
+    user.resetAttempts = 0;
+    await user.save();
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Password reset failed' });
+  }
+});
+
+// ---- Account settings ----
+
+router.post('/change-password', strict(10), requireAuth, async (req, res) => {
+  try {
+    const current = str(req.body.currentPassword);
+    const next = str(req.body.newPassword);
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!(await bcrypt.compare(current, user.password)))
+      return res.status(400).json({ error: 'Current password is incorrect' });
+
+    const problems = passwordProblems(next);
+    if (problems.length)
+      return res.status(400).json({ error: 'Password needs ' + problems.join(', '), problems });
+    if (next === current) return res.status(400).json({ error: 'Choose a different password' });
+
+    user.password = await bcrypt.hash(next, 12);
+    user.passwordChangedAt = new Date(); // all other sessions / stolen tokens stop working
+    await user.save();
+
+    // A fresh token keeps THIS session logged in
+    res.json({ ok: true, token: signToken(user) });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not change the password' });
+  }
+});
+
+router.delete('/account', strict(5), requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!(await bcrypt.compare(str(req.body.password), user.password)))
+      return res.status(400).json({ error: 'Password is incorrect' });
+
+    // The saved analyses (including the stored CV text) go with the account
+    await Analysis.deleteMany({ user: user._id });
+    await JobOffer.deleteMany({ user: user._id });
+    await User.deleteOne({ _id: user._id });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not delete the account' });
+  }
+});
+
+// ---- Login ----
 
 router.post('/login', async (req, res) => {
   try {
-    const email = str(req.body.email).trim().toLowerCase();
+    const email = cleanEmail(req.body.email);
     const password = str(req.body.password);
     if (!email || !password)
       return res.status(400).json({ error: 'email and password are required' });

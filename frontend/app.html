@@ -4304,7 +4304,7 @@
 
         if (!res.ok) throw new Error(data.error || 'Request failed');
 
-        onOk();
+        onOk(data);
 
       } catch (e) {
 
@@ -4335,10 +4335,15 @@
       if (miss.length) { msg.textContent = 'Password needs: ' + miss.join(', '); return; }
 
       accountCall('POST', 'change-password', { currentPassword: cur, newPassword: nw }, msg, document.getElementById('accChange'),
-
-        () => { closeAccount(); toast('Password changed'); });
-
-    });
+        (data) => {
+          if (data && data.token) {
+            authToken = data.token;
+            try { localStorage.setItem('cvision-token', authToken); } catch (e) { }
+          }
+          closeAccount();
+          toast('Password changed');
+        }
+    );
 
 
 
