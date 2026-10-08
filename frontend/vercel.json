@@ -1,5 +1,16 @@
 {
   "outputDirectory": ".",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/og-image.png", "destination": "/public/og-image.png" },
+    { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
+    { "source": "/favicon-16x16.png", "destination": "/public/favicon-16x16.png" },
+    { "source": "/favicon-32x32.png", "destination": "/public/favicon-32x32.png" },
+    { "source": "/apple-touch-icon.png", "destination": "/public/apple-touch-icon.png" },
+    { "source": "/android-chrome-192x192.png", "destination": "/public/android-chrome-192x192.png" },
+    { "source": "/android-chrome-512x512.png", "destination": "/public/android-chrome-512x512.png" },
+    { "source": "/logo-mark.svg", "destination": "/public/logo-mark.svg" },
+    { "source": "/site.webmanifest", "destination": "/public/site.webmanifest" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "cleanUrls": true
 }
