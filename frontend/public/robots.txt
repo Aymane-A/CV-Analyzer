@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cv-analyzer-nu-lemon.vercel.app/sitemap.xml
