@@ -23,6 +23,8 @@
     { "source": "/android-chrome-512x512.png", "destination": "/public/android-chrome-512x512.png" },
     { "source": "/logo-mark.svg", "destination": "/public/logo-mark.svg" },
     { "source": "/site.webmanifest", "destination": "/public/site.webmanifest" },
+    { "source": "/sitemap.xml", "destination": "/public/sitemap.xml" },
+    { "source": "/robots.txt", "destination": "/public/robots.txt" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true
