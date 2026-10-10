@@ -3,6 +3,7 @@ function buildPrompt(cvText, jobDescription = '') {
     ? `\n\nJOB DESCRIPTION:\n${jobDescription}\n\nmatch_score (0-100) must reflect how well THIS CV fits THIS job description: required skills, years of experience, seniority and domain. Be strict and consistent: 90+ only for an almost perfect fit.\nmatched_skills = skills required by the job that the CV clearly shows.\nmissing_skills = important skills required by the job that the CV lacks.`
     : '';
 
+  // The ATS score and its breakdown are computed by the server (utils/ats_score.js), not by the model.
   return `You are an expert HR recruiter and ATS specialist.
 Analyze the CV below and return ONLY this JSON structure:
 {
@@ -10,14 +11,6 @@ Analyze the CV below and return ONLY this JSON structure:
   "experience_level": "Junior | Mid | Senior | Lead",
   "experience_years": number,
   "education": "string",
-  "ats_score": number (0-100),
-  "breakdown": {
-    "format": number (0-100, structure and readability for ATS parsers),
-    "keywords": number (0-100, industry keywords present),
-    "experience": number (0-100, depth and relevance of work experience),
-    "education": number (0-100),
-    "skills": number (0-100, breadth and depth of skills)
-  },
   "match_score": number or null,
   "matched_skills": ["skill1"] (empty array if no job description),
   "missing_skills": ["skill1"] (empty array if no job description),
@@ -26,6 +19,7 @@ Analyze the CV below and return ONLY this JSON structure:
   "weaknesses": ["w1", "w2"],
   "suggestions": ["s1", "s2", "s3"]
 }
+Do NOT output any ATS score or numeric breakdown. Never invent facts that are not in the CV.
 Return ONLY valid JSON. No markdown.${jdSection}
 
 CV:

@@ -1,4 +1,6 @@
 // Cleans the AI output and computes a more stable match score.
+// ATS score + breakdown are deterministic (utils/ats_score.js): the LLM only provides qualitative feedback.
+const { scoreCV } = require('./ats_score');
 
 const clamp = (n, lo = 0, hi = 100) => {
   n = Number(n);
@@ -44,7 +46,7 @@ function textHasSkill(textLower, skill) {
   );
 }
 
-function refineResult(raw, hasJD, cvText = '') {
+function refineResult(raw, hasJD, cvText = '', jobDescription = '') {
   const r = { ...raw };
 
   r.candidate_name = String(r.candidate_name || '').trim() || 'Unknown';
@@ -52,18 +54,16 @@ function refineResult(raw, hasJD, cvText = '') {
   r.education = String(r.education || '').trim() || '—';
   const yrs = Number(r.experience_years);
   r.experience_years = Number.isFinite(yrs) ? Math.round(Math.min(60, Math.max(0, yrs)) * 10) / 10 : null;
-  r.ats_score = clamp(r.ats_score) ?? 0;
 
   for (const k of ['skills', 'strengths', 'weaknesses', 'suggestions']) r[k] = strArr(r[k]);
 
-  if (r.breakdown && typeof r.breakdown === 'object') {
-    const b = {};
-    for (const k of ['format', 'keywords', 'experience', 'education', 'skills']) {
-      const v = clamp(r.breakdown[k]);
-      if (v !== null) b[k] = v;
-    }
-    r.breakdown = Object.keys(b).length === 5 ? b : undefined;
+  // Deterministic ATS score: same CV (+ same job description) => same score, always
+  if (cvText) {
+    const det = scoreCV(cvText, hasJD ? jobDescription : '');
+    r.ats_score = det.total;
+    r.breakdown = det.breakdown;
   } else {
+    r.ats_score = clamp(r.ats_score) ?? 0;
     r.breakdown = undefined;
   }
 

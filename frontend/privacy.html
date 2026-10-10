@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Politique de confidentialité — CVision</title>
+  <meta name="description" content="Comment CVision collecte, utilise, conserve et supprime vos données et vos CV." />
   <link rel="icon" href="/favicon.ico" />
   <style>
     body { max-width: 800px; margin: 0 auto; padding: 48px 20px 80px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.7; color: #1f2937; background: #fff; }
@@ -11,56 +12,71 @@
     h2 { font-size: 22px; margin-top: 36px; margin-bottom: 8px; }
     .muted { color: #6b7280; font-size: 14px; }
     a { color: #2563eb; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; }
+    th, td { text-align: left; padding: 8px 10px; border: 1px solid #e5e7eb; vertical-align: top; }
+    th { background: #f9fafb; }
   </style>
 </head>
 <body>
   <main>
     <h1>Politique de confidentialité</h1>
-    <p class="muted">Dernière mise à jour : 8 octobre 2026</p>
+    <p class="muted">Dernière mise à jour : 10 octobre 2026</p>
 
-    <p>Cette politique explique comment CVision (« nous », « l'application ») collecte, utilise et protège vos données lorsque vous utilisez notre service d'analyse de CV.</p>
+    <p>Cette politique explique comment CVision (« nous », « l'application ») collecte, utilise, conserve et supprime vos données lorsque vous utilisez notre service d'analyse de CV.</p>
 
     <h2>1. Données que nous collectons</h2>
     <ul>
-      <li><strong>Informations de compte Google</strong> : lorsque vous vous connectez avec Google, nous recevons votre nom, votre adresse e-mail et votre photo de profil.</li>
-      <li><strong>CV et documents</strong> : les fichiers que vous téléversez pour analyse, ainsi que leur contenu textuel.</li>
-      <li><strong>Résultats d'analyse</strong> : les scores, suggestions et rapports générés à partir de vos CV.</li>
-      <li><strong>Données techniques</strong> : informations de base de navigation nécessaires au bon fonctionnement du service.</li>
+      <li><strong>Compte</strong> : votre nom, votre adresse e-mail et votre mot de passe. Le code à 6 chiffres de vérification d'e-mail et de réinitialisation du mot de passe sert uniquement à ces opérations.</li>
+      <li><strong>CV et offres d'emploi</strong> : le fichier que vous téléversez (PDF ou DOCX) est lu en mémoire et n'est pas enregistré sur un disque. Le texte extrait du CV (jusqu'à 12 000 caractères) et l'offre d'emploi éventuelle (jusqu'à 4 000 caractères) sont conservés avec votre analyse, afin que vous puissiez retrouver votre historique et utiliser « Améliorer mon CV ».</li>
+      <li><strong>Résultats</strong> : scores, compétences, suggestions, rapports, et, pour les recruteurs, le statut et les notes de suivi des candidats.</li>
+      <li><strong>Données techniques</strong> : informations de base nécessaires au fonctionnement et à la sécurité du service (par exemple pour limiter le nombre de requêtes).</li>
     </ul>
+    <p>Les CV que vous téléversez peuvent contenir des données personnelles (nom, téléphone, adresse, parcours). Si vous téléversez le CV d'une autre personne (cas des recruteurs), vous devez avoir le droit de le faire.</p>
 
     <h2>2. Utilisation des données</h2>
     <p>Nous utilisons vos données uniquement pour :</p>
     <ul>
       <li>vous authentifier et gérer votre compte ;</li>
-      <li>analyser vos CV et vous fournir les résultats ;</li>
-      <li>améliorer la qualité et la sécurité du service ;</li>
+      <li>analyser vos CV, les comparer à une offre et vous fournir les résultats ;</li>
+      <li>générer les contenus que vous demandez (réécriture, lettre de motivation, questions d'entretien, plan d'apprentissage) ;</li>
+      <li>assurer la sécurité du service et prévenir les abus ;</li>
       <li>vous contacter au sujet de votre compte si nécessaire.</li>
     </ul>
-    <p>Nous ne vendons jamais vos données personnelles.</p>
+    <p>Nous ne vendons jamais vos données personnelles. Nous n'utilisons pas vos CV pour entraîner nos propres modèles.</p>
 
     <h2>3. Services tiers</h2>
-    <p>Pour fournir le service, certaines données peuvent être traitées par des prestataires tiers (hébergement, authentification Google, services d'analyse par intelligence artificielle). Ces prestataires ne traitent vos données que pour nous fournir le service.</p>
-    <p>L'utilisation des informations reçues des API Google respecte la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">politique relative aux données utilisateur des services d'API Google</a>, y compris les exigences d'utilisation limitée.</p>
+    <p>Pour fournir le service, certaines données sont traitées par des prestataires :</p>
+    <table>
+      <tr><th>Prestataire</th><th>Rôle</th><th>Données concernées</th></tr>
+      <tr><td>Groq</td><td>Analyse par intelligence artificielle</td><td>Texte de votre CV et de l'offre d'emploi, envoyés pour générer l'analyse</td></tr>
+      <tr><td>MongoDB Atlas</td><td>Base de données</td><td>Compte, historique, résultats, texte des CV conservés</td></tr>
+      <tr><td>Vercel et Render</td><td>Hébergement du site et du serveur</td><td>Données transitant par le service</td></tr>
+    </table>
+    <p>Ces prestataires ne traitent vos données que pour nous fournir le service. Certains sont situés hors du Maroc et de l'Union européenne.</p>
 
-    <h2>4. Conservation et sécurité</h2>
-    <p>Vos données sont conservées tant que votre compte est actif. Nous mettons en œuvre des mesures raisonnables pour les protéger (connexion chiffrée HTTPS, accès restreint). Aucun système n'étant totalement infaillible, nous ne pouvons garantir une sécurité absolue.</p>
+    <h2>4. Conservation et suppression</h2>
+    <p>Vos données sont conservées tant que votre compte est actif. Vous pouvez à tout moment supprimer votre compte depuis l'application (menu du compte, « Supprimer mon compte », avec confirmation par mot de passe). La suppression efface votre compte et vos analyses. Vous pouvez aussi nous écrire à l'adresse indiquée plus bas.</p>
 
-    <h2>5. Vos droits</h2>
-    <p>Vous pouvez à tout moment :</p>
+    <h2>5. Sécurité</h2>
+    <p>Nous mettons en œuvre des mesures raisonnables pour protéger vos données : connexion chiffrée HTTPS, authentification par jeton, limitation du nombre de requêtes, accès restreint aux données de chaque compte. Aucun système n'étant totalement infaillible, nous ne pouvons garantir une sécurité absolue.</p>
+
+    <h2>6. Vos droits</h2>
+    <p>Conformément à la loi marocaine n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel et, le cas échéant, au RGPD, vous pouvez à tout moment :</p>
     <ul>
       <li>accéder à vos données ou en demander une copie ;</li>
       <li>corriger des informations inexactes ;</li>
-      <li>demander la suppression de votre compte et de vos CV ;</li>
-      <li>révoquer l'accès de l'application depuis les paramètres de votre compte Google.</li>
+      <li>supprimer votre compte et vos CV ;</li>
+      <li>vous opposer à un traitement ou en demander la limitation ;</li>
     </ul>
+    <p>Au Maroc, vous pouvez également saisir la Commission Nationale de contrôle de la protection des Données à caractère Personnel (CNDP).</p>
 
-    <h2>6. Cookies</h2>
-    <p>Nous utilisons uniquement des cookies ou stockages locaux nécessaires à la session de connexion et au fonctionnement de l'application.</p>
+    <h2>7. Cookies et stockage local</h2>
+    <p>Nous n'utilisons pas de cookies publicitaires. Le navigateur conserve localement uniquement ce qui est nécessaire au fonctionnement : votre session de connexion, votre langue, votre thème (clair ou sombre) et un historique récent de vos analyses sur cet appareil.</p>
 
-    <h2>7. Modifications</h2>
+    <h2>8. Modifications</h2>
     <p>Nous pouvons mettre à jour cette politique. La date de dernière mise à jour est indiquée en haut de cette page.</p>
 
-    <h2>8. Contact</h2>
+    <h2>9. Contact</h2>
     <p>Pour toute question ou demande concernant vos données : <a href="mailto:cvision.app.ma@gmail.com">cvision.app.ma@gmail.com</a></p>
   </main>
 </body>

@@ -127,7 +127,7 @@ app.post('/api/analyze', analyzeLimiter, upload.single('file'), optionalAuth, as
 
     const jobDescription = cleanJD(req.body.job_description);
     const cvText = await readCV(req.file);
-    const result = refineResult(await analyzeCV(cvText, jobDescription, pickLang(req.body.language)), !!jobDescription, cvText);
+    const result = refineResult(await analyzeCV(cvText, jobDescription, pickLang(req.body.language)), !!jobDescription, cvText, jobDescription);
 
     if (req.userId) {
       await Analysis.create({
@@ -193,7 +193,7 @@ async function rewriteWithScore(cvText, jobDescription, language, suggestions) {
   const out = await rewriteCV(cvText, jobDescription, language, suggestions);
   let after = null;
   try {
-    const r = refineResult(await analyzeCV(out.rewritten_cv, jobDescription, language), !!jobDescription, out.rewritten_cv);
+    const r = refineResult(await analyzeCV(out.rewritten_cv, jobDescription, language), !!jobDescription, out.rewritten_cv, jobDescription);
     after = {
       ats_score: typeof r.ats_score === 'number' ? r.ats_score : null,
       match_score: jobDescription && typeof r.match_score === 'number' ? r.match_score : null
@@ -234,7 +234,7 @@ app.post(
       for (const file of files) {
         try {
           const text = await readCV(file);
-          const result = refineResult(await analyzeCV(text, jobDescription, pickLang(req.body.language)), true, text);
+          const result = refineResult(await analyzeCV(text, jobDescription, pickLang(req.body.language)), true, text, jobDescription);
           cvTexts.set(file.originalname, text.slice(0, 12000));
           ok.push({ fileName: file.originalname, ...result });
         } catch (err) {
